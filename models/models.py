@@ -92,7 +92,7 @@ class LPBlock(nn.Module):
         super(LPBlock, self).__init__()
         self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_enc_heads)
         self.decoder = Decoder(dim, num_heads=num_heads, patch_size=patch_size, ffn_exp=ffn_exp)
-        # TODO: #2 define d_e and d_w here 
+        # TODO: #2 define d_e, d_d, d_w here 
     
     def forward(self, x, parts):
         """
@@ -103,3 +103,16 @@ class LPBlock(nn.Module):
             feats: [B, seq_len, d]
             parts: [B, N, d]
         """
+        P = x.shape[1]
+        x = rearrange(x, "b p k c -> b (p k) c")
+        parts = self.encoder(x, parts=parts, qpos=part_qpos)
+        feats = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=whole_qpos, P=P)
+        return feats, parts
+
+# class LPEncoder(nn.Module):
+#     def __init__(self, [something something]):
+#         self.embedding = nn.Embedding()
+#         self.blocks_1 = LPBlock()
+#     
+#     def forward(self, tokens):
+#         return x, p
