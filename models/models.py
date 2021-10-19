@@ -7,8 +7,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.nn.init import xavier_uniform_
+from torch.nn.modules.normalization import LayerNorm
 
 from layers import *
+
+
+def _get_clones(module, N):
+    return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
+
+def _get_activation_fn(activation):
+    if activation == 'relu':
+        return F.relu
+    elif activation == 'gelu':
+        return F.gelu
+    else:
+        raise RuntimeError(f"Invalid Activation {activation}")
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -116,3 +129,71 @@ class LPBlock(nn.Module):
 #     
 #     def forward(self, tokens):
 #         return x, p
+
+class LPDecoder(nn.Module):
+    def __init__(self, decoder_layer, num_layers, norm=None):
+        super(LPDecoder, self).__init__()
+        self.num_layers = num_layers
+        self.norm = norm
+
+        self.layers = _get_clones(decoder_layer, num_layers)
+
+    def forward(self, trg, memory, trg_mask=None, memory_mask=None,
+                trg_kp_mask=None, memory_kp_mask=None):
+        attn_weights = []
+        output = trg
+        for mod in self.layers:
+            output, attn_wts = mod(output, memory, trg_mask=trg_mask,
+                                       memory_mask=memory_mask,
+                                       trg_kp_mask=trg_kp_mask,
+                                       memory_kp_mask=memory_kp_mask)
+            attn_weights.append(attn_wts)
+        if self.norm is not None:
+            output = self.norm(output)
+        
+        return output, attn_weights
+
+class TransformerDecoderLayer(nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation='relu'):
+        super(TransformerDecoderLayer, self).__init__()
+        self.d_model = d_model
+        self.nhead = nhead
+        self.dim_feedforward = dim_feedforward
+
+        # Self Attention
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+
+        self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+
+        # Feedforward
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+        # Normalization
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.norm3 = nn.LayerNorm(d_model)
+        # Dropout
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+        self.dropout3 = nn.Dropout(dropout)
+        # Activation
+        self.activation = _get_activation_fn(activation)
+    def forward(self, trg, memory, trg_mask=None, memory_mask=None,
+                trg_kp_mask=None, memory_kp_mask=None):
+        trg2, attn_weights1 = self.self_attn(trg, trg, trg, attn_mask=trg_mask,
+                                             key_padding_mask=trg_kp_mask)
+        trg = trg + self.dropout1(trg2)
+        trg = self.norm1(trg)
+        trg2, attn_weights2 = self.multihead_attn(trg, memory, memory,
+                                                  attn_mask=memory_mask,
+                                                  key_padding_mask=memory_kp_mask)
+        trg = trg + self.dropout2(trg2)
+        trg = self.norm2(trg)
+        trg2 = self.linear2(self.dropout(self.activation(self.linear1(trg))))
+        trg = trg + self.dropout3(trg2)
+        trg = self.norm3(trg)
+
+        attn_weights = {'Sublayer1': attn_weights1,
+                        'Sublayer2': attn_weights2}
+        return trg, attn_weights
