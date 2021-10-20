@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.nn.init import xavier_uniform_
-from torch.nn.modules.normalization import LayerNorm
 
 from layers import *
 
@@ -55,7 +54,7 @@ class Encoder(nn.Module):
         Args:
             feats: [B, seq_len, d]
             parts: [B, N, d]
-            qpos: [B, N, d]
+            qpos: [B, N, 1, d]
             kpos: [B, seq_len, d]
         Returns:
             parts: [B, N, d]
@@ -83,7 +82,7 @@ class Decoder(nn.Module):
         Args:
             x: [B, seq_len, d]
             parts: [B, N, d]
-            part_kpos: [B, N, d]
+            part_kpos: [B, N, 1, d]
             whole_qpos: [B, seq_len, d]
             P: patch_num
         Returns:
@@ -105,7 +104,12 @@ class LPBlock(nn.Module):
         super(LPBlock, self).__init__()
         self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_enc_heads)
         self.decoder = Decoder(dim, num_heads=num_heads, patch_size=patch_size, ffn_exp=ffn_exp)
-        # TODO: #2 define d_e, d_d, d_w here 
+        
+        self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_enc_heads))
+        self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
+        # TODO: this should somehow be a PositionalEmbedding instance from above class.
+        self.whole_qpos = 
+
     
     def forward(self, x, parts):
         """
@@ -118,8 +122,8 @@ class LPBlock(nn.Module):
         """
         P = x.shape[1]
         x = rearrange(x, "b p k c -> b (p k) c")
-        parts = self.encoder(x, parts=parts, qpos=part_qpos)
-        feats = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=whole_qpos, P=P)
+        parts = self.encoder(x, parts=parts, qpos=self.part_qpos)
+        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, P=P)
         return feats, parts
 
 # class LPEncoder(nn.Module):
