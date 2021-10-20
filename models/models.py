@@ -129,13 +129,19 @@ class LPBlock(nn.Module):
         feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, P=P)
         return feats, parts
 
-# class LPEncoder(nn.Module):
-#     def __init__(self, [something something]):
-#         self.embedding = nn.Embedding()
-#         self.blocks_1 = LPBlock()
-#     
-#     def forward(self, tokens):
-#         return x, p
+"""
+This class should have the computation from the blocks and output parts and wholes from multiple blocks
+"""
+class LPEncoder(nn.Module):
+    def __init__(self, dim):
+        self.block_1 = LPBlock(dim)
+        self.block_2 = LPBlock(dim)
+    
+    def forward(self, tokens):
+        # tokens should be [B, seq_len, d] -- analogous to x
+        # initialize parts to random or something
+        # return 
+        pass
 
 class LPDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
@@ -204,3 +210,89 @@ class TransformerDecoderLayer(nn.Module):
         attn_weights = {'Sublayer1': attn_weights1,
                         'Sublayer2': attn_weights2}
         return trg, attn_weights
+
+
+class LanguageParser(nn.Module):
+    def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
+                 num_encoder_layers, num_decoder_layers,
+                 dim_feedforward, dropout, pad_idx, device):
+        self.src_vocab_size = src_vocab_size
+        self.trg_vocab_size = trg_vocab_size
+        self.d_model = d_model
+        self.nhead = nhead
+        self.num_encoder_layers = num_encoder_layers
+        self.num_decoder_layers = num_decoder_layers
+        self.dim_feedforwards = dim_feedforward
+        self.dropout = dropout
+        self.pad_idx = pad_idx
+        self.activation = 'relu'
+        self.device = device
+
+        # Input
+        self.src_embedding = nn.Embedding(src_vocab_size, d_model)
+        self.trg_embedding = nn.Embedding(trg_vocab_size, d_model)
+        self.positional_encoding = PositionalEncoding(d_model, dropout)
+
+        # Encoder stuff should go here
+
+        # Decoder 
+        decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
+                                                dropout, self.activation)
+        decoder_norm = nn.LayerNorm(d_model)
+        self.decoder = LPDecoder(decoder_layer, num_decoder_layers,
+                                 decoder_norm)
+
+        # Output
+        self.linear = nn.Linear(d_model, trg_vocab_size)
+
+        # Initialize parameters
+        self._reset_parameters()
+
+    def _get_masks(self, src, trg):
+        sz = trg.shape[0]
+        trg_mask = self._generate_square_subsequent_mask(sz)
+        trg_mask = trg_mask.to(self.device)
+        src_kp_mask = (src == self.pad_idx).transpose(0, 1).to(self.device)
+        trg_kp_mask = (trg == self.pad_idx).transpose(0, 1).to(self.device)
+        return trg_mask, src_kp_mask, trg_kp_mask
+    
+    def _generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf'))
+        mask = mask.masked_fill(mask == 1, float(0.0))
+        return mask
+    
+    def _reset_parameters(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                xavier_uniform_(p)
+
+    def forward(self, src, trg):
+        src_mask = None
+        trg_mask, src_kp_mask, trg_kp_mask = self._get_masks(src, trg)
+
+        # Input
+        src = self.src_embedding(src)
+        src = self.positional_encoding(src)
+        trg = self.trg_embedding(trg)
+        trg = self.positional_encoding(trg)
+
+        # Encoder stuff should go here!
+
+        # Decide on what goes in the memory in decoder
+        memory_mask = None
+        memory_kp_mask = None
+        out, dec_attn_wts = self.decoder(trg, memory, trg_mask=trg_mask,
+                                         memory_mask=memory_mask,
+                                         trg_kp_mask=trg_kp_mask,
+                                         memory_kp_mask=memory_kp_mask) 
+        
+        # Output
+        out = self.linear(out)
+
+        # Attention Weights
+        # Decide on what goes in the enc_attn_wts
+        attn_wts = {'Encoder': enc_attn_wts,
+                    'Decoder': dec_attn_wts}
+        
+        return out, attn_wts
