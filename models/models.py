@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from torch.nn.init import xavier_uniform_
+import torch.nn.init as init
+from torch.nn.init import trunc_normal_, xavier_uniform_
 
 from layers import *
 
@@ -53,17 +53,19 @@ class Encoder(nn.Module):
         self.reason = SimpleReasoning(num_parts, dim)
         self.enc_ffn = MLP(dim, hidden_features=dim, act_layer=act) if has_ffn else None
 
-    def forward(self, feats, parts=None, qpos=None, kpos=None):
+    def forward(self, feats, parts=None, qpos=None, kpos=None, mask=None):
         """
         Args:
             feats: [B, seq_len, d]
             parts: [B, N, d]
             qpos: [B, N, 1, d]
             kpos: [B, seq_len, d]
+            # TODO: #4 Mask dimension
+            mask: [B, 1, [something here]]
         Returns:
             parts: [B, N, d]
         """
-        attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos)
+        attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask)
         parts = parts + nn.Identity(attn_out)
         parts = self.reason(parts)
         if self.enc_ffn is not None:
@@ -71,7 +73,7 @@ class Encoder(nn.Module):
         return parts
 
 class Decoder(nn.Module):
-    def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
+    def __init__(self, dim, num_heads=8, patch_size=None, ffn_exp=3, act=nn.GELU):
         super(Decoder, self).__init__()
         assert dim % num_heads == 0, f"dim {dim} should be divisible by num_heads {num_heads}."
         self.dim = dim
@@ -81,24 +83,28 @@ class Decoder(nn.Module):
         self.ffn1 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
         self.ffn2 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
 
-    def forward(self, x, parts=None, part_kpos=None, whole_qpos=None, P=0):
+    def forward(self, x, parts=None, part_kpos=None, whole_qpos=None, mask=None, P=0):
         """
         Args:
             x: [B, seq_len, d]
             parts: [B, N, d]
             part_kpos: [B, N, 1, d]
             whole_qpos: [B, seq_len, d]
+            #TODO: Same thing here too
+            mask: [B, 1, [something]]
             P: patch_num
         Returns:
             feats: [B, seq_len, d]
         """
-        out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos)
+        dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1 1")
+        out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask)
         out = x + nn.Identity(out)
         out = out + nn.Identity(self.ffn1(out))
 
         out = rearrange(out, "b (p k) c -> (b p) k c", p=P)
         # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
-        local_out = self.attn2(q=out, k=out, v=out)
+        # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
+        local_out = self.attn2(q=out, k=out, v=out, mask=mask)
         out = nn.Identity(local_out)
         out = out + nn.Identity(self.ffn2(out))
         return rearrange(out, "(b p) k c -> b p k c", p=P)
@@ -113,35 +119,46 @@ class LPBlock(nn.Module):
         self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
         self.whole_qpos = PositionalEncoding(dim, dropout)
 
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        init.kaiming_uniform_(self.part_qpos, a = math.sqrt(5))
+        trunc_normal_(self.part_qpos, std=0.02)
+        init.kaiming_uniform_(self.part_kpos, a = math.sqrt(5))
+        trunc_normal_(self.part_kpos, std=0.02)
+
     
-    def forward(self, x, parts):
+    def forward(self, x, parts, mask=None):
         """
         Args:
             x: [B, seq_len, d]
             parts: [B, N, d]
+            #TODO: hi again, its me
+            mask: [B, 1, [something something]]
         Returns: 
             feats: [B, seq_len, d]
             parts: [B, N, d]
         """
         P = x.shape[1]
         x = rearrange(x, "b p k c -> b (p k) c")
-        parts = self.encoder(x, parts=parts, qpos=self.part_qpos)
-        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, P=P)
+        parts = self.encoder(x, parts=parts, qpos=self.part_qpos, mask=mask)
+        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask, P=P)
         return feats, parts
 
 """
 This class should have the computation from the blocks and output parts and wholes from multiple blocks
 """
 class LPEncoder(nn.Module):
-    def __init__(self, dim):
-        self.block_1 = LPBlock(dim)
-        self.block_2 = LPBlock(dim)
+    def __init__(self, dim, ffn_exp, patch_size, num_heads, num_enc_heads, num_parts, dropout):
+        self.block_1 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
+                               num_parts, dropout)
+        self.block_2 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
+                               num_parts, dropout)
     
-    def forward(self, tokens):
-        # tokens should be [B, seq_len, d] -- analogous to x
-        # initialize parts to random or something
-        # return 
-        pass
+    def forward(self, tokens, parts=None, mask=None):
+        feats, parts = self.block_1(tokens, parts, mask)
+        feats, parts = self.block_2(tokens, parts, mask)
+        return feats, parts
 
 class LPDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
@@ -192,6 +209,7 @@ class TransformerDecoderLayer(nn.Module):
         self.dropout3 = nn.Dropout(dropout)
         # Activation
         self.activation = _get_activation_fn(activation)
+
     def forward(self, trg, memory, trg_mask=None, memory_mask=None,
                 trg_kp_mask=None, memory_kp_mask=None):
         trg2, attn_weights1 = self.self_attn(trg, trg, trg, attn_mask=trg_mask,
@@ -214,13 +232,16 @@ class TransformerDecoderLayer(nn.Module):
 
 class LanguageParser(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
-                 num_encoder_layers, num_decoder_layers,
+                 ffn_exp, patch_size, num_enc_heads, num_parts, num_decoder_layers,
                  dim_feedforward, dropout, pad_idx, device):
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
         self.nhead = nhead
-        self.num_encoder_layers = num_encoder_layers
+        self.ffn_exp = ffn_exp
+        self.patch_size = patch_size
+        self.num_encoder_heads = num_enc_heads
+        self.num_parts = num_parts
         self.num_decoder_layers = num_decoder_layers
         self.dim_feedforwards = dim_feedforward
         self.dropout = dropout
@@ -234,6 +255,10 @@ class LanguageParser(nn.Module):
         self.positional_encoding = PositionalEncoding(d_model, dropout)
 
         # Encoder stuff should go here
+        # Define encoder and probably also define the rpn_tokens which should go in as parts
+        self.encoder = LPEncoder(d_model, ffn_exp, patch_size, nhead, num_enc_heads, num_parts, dropout)
+        # TODO: define num_parts and inplanes to match up with above defintions of parts
+        self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, inplanes))
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -263,9 +288,13 @@ class LanguageParser(nn.Module):
         return mask
     
     def _reset_parameters(self):
+        init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
+        trunc_normal_(self.rpn_tokens, std=.02)
         for p in self.parameters():
-            if p.dim() > 1:
-                xavier_uniform_(p)
+            # TODO: fix the condition here to not reinitialize the value of rpn_tokens
+            if p is not isinstance(p, nn.Parameter):
+                if p.dim() > 1:
+                    init.xavier_uniform_(p)
 
     def forward(self, src, trg):
         src_mask = None
@@ -278,7 +307,11 @@ class LanguageParser(nn.Module):
         trg = self.positional_encoding(trg)
 
         # Encoder stuff should go here!
-
+        feats, parts = self.encoder(src, self.rpn_tokens, src_kp_mask)
+        # TODO: How to define what goes into the decoder as memory and get attn weights
+        memory = parts
+        enc_attn_wts = None
+        
         # Decide on what goes in the memory in decoder
         memory_mask = None
         memory_kp_mask = None
