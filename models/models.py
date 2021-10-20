@@ -1,15 +1,16 @@
 import math
 import copy
-from typing import Any
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-from torch.nn.init import trunc_normal_, xavier_uniform_
 
 from layers import *
 
+# Current potential issues:
+# PositionalEncoding stuff is not clear
+# inplanes has to be defined (somehow)
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -123,9 +124,9 @@ class LPBlock(nn.Module):
 
     def _reset_parameters(self):
         init.kaiming_uniform_(self.part_qpos, a = math.sqrt(5))
-        trunc_normal_(self.part_qpos, std=0.02)
+        init.trunc_normal_(self.part_qpos, std=0.02)
         init.kaiming_uniform_(self.part_kpos, a = math.sqrt(5))
-        trunc_normal_(self.part_kpos, std=0.02)
+        init.trunc_normal_(self.part_kpos, std=0.02)
 
     
     def forward(self, x, parts, mask=None):
@@ -289,7 +290,7 @@ class LanguageParser(nn.Module):
     
     def _reset_parameters(self):
         init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
-        trunc_normal_(self.rpn_tokens, std=.02)
+        init.trunc_normal_(self.rpn_tokens, std=0.02)
         for p in self.parameters():
             # TODO: fix the condition here to not reinitialize the value of rpn_tokens
             if p is not isinstance(p, nn.Parameter):
