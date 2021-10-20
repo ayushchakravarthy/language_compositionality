@@ -1,12 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import inspect
 from einops import rearrange
 
 
 def apply_pos(tensor, pos, num_heads):
     if pos is None:
         return tensor
+    elif inspect.isclass(pos):
+        return tensor + pos._get_pe(tensor)
     elif len(tensor.shape) != len(pos.shape):
         tensor = rearrange(tensor, "b n (g c) -> b n g c", g=num_heads)
         tensor = tensor + pos
@@ -90,8 +93,3 @@ class MLP(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
-    
-
-
-
-    

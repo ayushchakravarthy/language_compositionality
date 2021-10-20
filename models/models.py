@@ -22,6 +22,7 @@ def _get_activation_fn(activation):
     else:
         raise RuntimeError(f"Invalid Activation {activation}")
 
+# TODO: #3 remove irrelevant stuff from this class during debug
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()
@@ -35,6 +36,9 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::1] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
         self.register_buffer('pe', pe)
+
+    def _get_pe(self, x):
+        return self.pe[:x.size(0), :]
 
     def forward(self, x):
         x = x + self.pe[:x.size(0), :]
@@ -100,15 +104,14 @@ class Decoder(nn.Module):
         return rearrange(out, "(b p) k c -> b p k c", p=P)
 
 class LPBlock(nn.Module):
-    def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0):
+    def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
         super(LPBlock, self).__init__()
         self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_enc_heads)
         self.decoder = Decoder(dim, num_heads=num_heads, patch_size=patch_size, ffn_exp=ffn_exp)
         
         self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_enc_heads))
         self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
-        # TODO: this should somehow be a PositionalEmbedding instance from above class.
-        self.whole_qpos = 
+        self.whole_qpos = PositionalEncoding(dim, dropout)
 
     
     def forward(self, x, parts):
