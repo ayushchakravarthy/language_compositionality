@@ -31,10 +31,26 @@ def train(run, args):
     assert TRG.vocab[TRG.pad_token] == pad_idx
 
     # Model
+    # TODO: args.patch_size should be used in the FullRelPos class, should be modded for NLP
     if args.model_type == "language_parser":
-        model = LanguageParser()
-    if args.load_weights_From is not None:
+        model = LanguageParser(
+            src_vocab_size,
+            trg_vocab_size,
+            args.d_model,
+            args.nhead,
+            args.ffn_exp,
+            args.patch_size,
+            args.num_enc_heads,
+            args.num_parts,
+            args.num_decoder_layers,
+            args.dim_feedforward,
+            args.dropout,
+            pad_idx,
+            device
+        )
+    if args.load_weights_from is not None:
         model.load_state_dict(torch.load(args.load_weights_from))
+    print(model)
     model = model.to(device)
     model.train()
 
@@ -44,7 +60,7 @@ def train(run, args):
 
     # Optimizer
     params = model.parameters()
-    optimizer = optim.Adam(params, lr=args.learning_rate)
+    optimizer = optim.AdamW(params, lr=args.learning_rate)
 
     # Setup things to record
     loss_data = []

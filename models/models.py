@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from layers import *
+from .layers import *
 
 
 def _get_clones(module, N):
@@ -80,7 +80,7 @@ class Decoder(nn.Module):
         self.ffn1 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
         self.ffn2 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
 
-    def forward(self, x, parts=None, part_kpos=None, whole_qpos=None, mask=None, P=0):
+    def forward(self, x, parts=None, part_kpos=None, whole_qpos=None, mask=None):
         """
         Args:
             x: [B, seq_len, d]
@@ -93,18 +93,19 @@ class Decoder(nn.Module):
         Returns:
             feats: [B, seq_len, d]
         """
-        dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1 1")
+        dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1")
         out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask)
         out = x + nn.Identity(out)
         out = out + nn.Identity(self.ffn1(out))
 
-        out = rearrange(out, "b (p k) c -> (b p) k c", p=P)
+        # out = rearrange(out, "b (p k) c -> (b p) k c", p=P)
         # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
         # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
         local_out = self.attn2(q=out, k=out, v=out, mask=mask)
         out = nn.Identity(local_out)
         out = out + nn.Identity(self.ffn2(out))
-        return rearrange(out, "(b p) k c -> b p k c", p=P)
+        return out
+        # return rearrange(out, "(b p) k c -> b p k c", p=P)
 
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
@@ -136,10 +137,10 @@ class LPBlock(nn.Module):
             feats: [B, seq_len, d]
             parts: [B, N, d]
         """
-        P = x.shape[1]
-        x = rearrange(x, "b p k c -> b (p k) c")
+        # P = x.shape[1]
+        # x = rearrange(x, "b p k c -> b (p k) c")
         parts = self.encoder(x, parts=parts, qpos=self.part_qpos, mask=mask)
-        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask, P=P)
+        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask)
         return feats, parts
 
 """
@@ -329,22 +330,3 @@ class LanguageParser(nn.Module):
                     'Decoder': dec_attn_wts}
         
         return out, attn_wts
-
-
-if __name__ == "__main__":
-    model = LanguageParser(
-        10,
-        10,
-        128,
-        4,
-        7,
-        4,
-        2,
-        64,
-        2,
-        1028,
-        0.1,
-        None,
-        'cpu'
-    )
-    print(model)
