@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from layers import *
+from .layers import *
 
 # Current potential issues:
 # PositionalEncoding stuff is not clear
@@ -23,7 +23,6 @@ def _get_activation_fn(activation):
     else:
         raise RuntimeError(f"Invalid Activation {activation}")
 
-# TODO: #3 remove irrelevant stuff from this class during debug
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
         super(PositionalEncoding, self).__init__()
@@ -258,8 +257,8 @@ class LanguageParser(nn.Module):
         # Encoder stuff should go here
         # Define encoder and probably also define the rpn_tokens which should go in as parts
         self.encoder = LPEncoder(d_model, ffn_exp, patch_size, nhead, num_enc_heads, num_parts, dropout)
-        # TODO: define num_parts and inplanes to match up with above defintions of parts
-        self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, inplanes))
+        # TODO: figure out how to size this to batch_size?
+        self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, d_model))
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -302,8 +301,9 @@ class LanguageParser(nn.Module):
         trg_mask, src_kp_mask, trg_kp_mask = self._get_masks(src, trg)
 
         # Input
+        # Note: this is not positionally encoded (currently unclear whether this is what we want)
         src = self.src_embedding(src)
-        src = self.positional_encoding(src)
+
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
 
