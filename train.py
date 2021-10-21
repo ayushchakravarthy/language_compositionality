@@ -111,5 +111,3 @@ def train(run, args):
                     if args.checkpoint_path is not None:
                         torch.save(model.state_dict(),
                                    args.checkpoint_path)
-
-    return None

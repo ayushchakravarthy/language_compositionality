@@ -6,11 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
-from .layers import *
+from layers import *
 
-# Current potential issues:
-# PositionalEncoding stuff is not clear
-# inplanes has to be defined (somehow)
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
@@ -29,11 +26,11 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
         pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze()
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.arange(0, d_model, 2).float() * (-math.log(10000.0))
         div_term = torch.exp(div_term / d_model)
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 0::1] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
         self.register_buffer('pe', pe)
 
@@ -150,6 +147,7 @@ This class should have the computation from the blocks and output parts and whol
 """
 class LPEncoder(nn.Module):
     def __init__(self, dim, ffn_exp, patch_size, num_heads, num_enc_heads, num_parts, dropout):
+        super(LPEncoder, self).__init__()
         self.block_1 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
                                num_parts, dropout)
         self.block_2 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
@@ -234,6 +232,7 @@ class LanguageParser(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
                  ffn_exp, patch_size, num_enc_heads, num_parts, num_decoder_layers,
                  dim_feedforward, dropout, pad_idx, device):
+        super(LanguageParser, self).__init__()
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
@@ -330,3 +329,22 @@ class LanguageParser(nn.Module):
                     'Decoder': dec_attn_wts}
         
         return out, attn_wts
+
+
+if __name__ == "__main__":
+    model = LanguageParser(
+        10,
+        10,
+        128,
+        4,
+        7,
+        4,
+        2,
+        64,
+        2,
+        1028,
+        0.1,
+        None,
+        'cpu'
+    )
+    print(model)
