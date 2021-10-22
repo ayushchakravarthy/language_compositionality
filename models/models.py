@@ -32,6 +32,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
+        self.shape = [0]
         self.register_buffer('pe', pe)
 
     def _get_pe(self, x):
@@ -57,16 +58,16 @@ class Encoder(nn.Module):
             parts: [B, N, d]
             qpos: [B, N, 1, d]
             kpos: [B, seq_len, d]
-            # TODO: #4 Mask dimension
-            mask: [B, 1, [something here]]
+            mask: [seq_len, B]
         Returns:
             parts: [B, N, d]
         """
         attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask)
-        parts = parts + nn.Identity(attn_out)
+        # TODO: #5 figure out this, this addition is causing parts to be casted as a nn.Tensor, maybe it won't learn anything as a result
+        parts = parts + attn_out
         parts = self.reason(parts)
         if self.enc_ffn is not None:
-            parts = parts + nn.Identity(self.enc_ffn(parts))
+            parts = parts + self.enc_ffn(parts)
         return parts
 
 class Decoder(nn.Module):
@@ -88,13 +89,15 @@ class Decoder(nn.Module):
             part_kpos: [B, N, 1, d]
             whole_qpos: [B, seq_len, d]
             #TODO: Same thing here too
-            mask: [B, 1, [something]]
+            mask: [seq_len, B]
             P: patch_num
         Returns:
             feats: [B, seq_len, d]
         """
-        dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1")
+        # dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1")
+        dec_mask = None if mask is None else mask
         out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask)
+        exit()
         out = x + nn.Identity(out)
         out = out + nn.Identity(self.ffn1(out))
 

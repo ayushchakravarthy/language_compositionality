@@ -11,6 +11,8 @@ def apply_pos(tensor, pos, num_heads):
     elif inspect.isclass(pos):
         return tensor + pos._get_pe(tensor)
     elif len(tensor.shape) != len(pos.shape):
+        print(inspect.isclass(pos))
+        print(type(pos))
         tensor = rearrange(tensor, "b n (g c) -> b n g c", g=num_heads)
         tensor = tensor + pos
         tensor = rearrange(tensor, "b n g c -> b n (g c)")
@@ -64,7 +66,10 @@ class AnyAttention(nn.Module):
             attn = rel_pos(q, attn)
         attn *= self.scale
         if mask is not None:
+            if len(mask.shape) != len(attn.shape):
+                mask = rearrange(mask, "s b -> b 1 1 s")
             attn = attn.masked_fill(mask.bool(), value=float('-inf'))
+            print(attn.shape, mask.bool().shape)
         attn = F.softmax(attn, dim=-1)
         if mask is not None:
             attn = attn.masked_fill(mask.bool(), value=0)
