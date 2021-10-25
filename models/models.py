@@ -58,11 +58,11 @@ class Encoder(nn.Module):
             parts: [B, N, d]
             qpos: [B, N, 1, d]
             kpos: [B, seq_len, d]
-            mask: [seq_len, B]
+            mask: [B, seq_len]
         Returns:
             parts: [B, N, d]
         """
-        mask = None if mask is None else rearrange(mask, 's b -> b 1 1 s')
+        mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
         attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
         # TODO: #5 figure out this, this addition is causing parts to be casted as a nn.Tensor, maybe it won't learn anything as a result
         parts = parts + attn_out
@@ -87,27 +87,24 @@ class Decoder(nn.Module):
         Args:
             x: [B, seq_len, d]
             parts: [B, N, d]
-            part_kpos: [B, N, 1, d]
-            whole_qpos: [B, seq_len, d]
-            mask: [seq_len, B]
+            part_kpos: [B, N, 1, d] 
+            whole_qpos: PositionalEncoding instance
+            mask: [B, seq_len]
             P: patch_num
         Returns:
             feats: [B, seq_len, d]
         """
-        # dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1")
-        dec_mask = None if mask is None else rearrange(mask, 's b -> b s 1 1')
+        dec_mask = None if mask is None else rearrange(mask, 'b s -> b s 1 1')
         out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
         out = x + out
         out = out + self.ffn1(out)
 
-        # out = rearrange(out, "b (p k) c -> (b p) k c", p=P)
         # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
         # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
         local_out = self.attn2(q=out, k=out, v=out, mask=dec_mask)
         out = local_out
         out = out + self.ffn2(out)
         return out
-        # return rearrange(out, "(b p) k c -> b p k c", p=P)
 
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
@@ -133,8 +130,7 @@ class LPBlock(nn.Module):
         Args:
             x: [B, seq_len, d]
             parts: [B, N, d]
-            #TODO: hi again, its me
-            mask: [B, 1, [something something]]
+            mask: [B, seq_len]
         Returns: 
             feats: [B, seq_len, d]
             parts: [B, N, d]
@@ -157,8 +153,20 @@ class LPEncoder(nn.Module):
                                num_parts, dropout)
     
     def forward(self, tokens, parts=None, mask=None):
+        """
+        args:
+            tokens: [seq_len, B, d]
+            parts: [B, N, d]
+            mask: [B, seq_len]
+        returns:
+            feats: [seq_len, B, d]
+            parts: [N, B, d]
+        """
+        tokens = rearrange(tokens, "s b d -> b s d") # changing tokens to [B, seq_len, d]
         feats, parts = self.block_1(tokens, parts, mask)
         feats, parts = self.block_2(tokens, parts, mask)
+        feats = rearrange(feats, "b s d -> s b d")
+        parts = rearrange(parts, "b n d -> n b d")
         return feats, parts
 
 class LPDecoder(nn.Module):
@@ -259,7 +267,6 @@ class LanguageParser(nn.Module):
         # Encoder stuff should go here
         # Define encoder and probably also define the rpn_tokens which should go in as parts
         self.encoder = LPEncoder(d_model, ffn_exp, patch_size, nhead, num_enc_heads, num_parts, dropout)
-        # TODO: figure out how to size this to batch_size?
         self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, d_model))
 
         # Decoder 
@@ -299,22 +306,32 @@ class LanguageParser(nn.Module):
                     init.xavier_uniform_(p)
 
     def forward(self, src, trg):
+        """
+        args:
+            src: [src_seq_len, B]
+            trg: [trg_seq_len, B]
+
+        """
         src_mask = None
+        # trg_mask: [trg_seq_len, trg_seq_len]
+        # src_kp_mask: [B, src_seq_len]
+        # trg_kp_mask: [B, trg_seq_len]
         trg_mask, src_kp_mask, trg_kp_mask = self._get_masks(src, trg)
 
         # Input
-        # Note: this is not positionally encoded (currently unclear whether this is what we want)
+        # src: [src_seq_len, B, d]
+        # trg: [trg_seq_len, B, d]
         src = self.src_embedding(src)
-
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
 
         # Encoder stuff should go here!
+        # feats: [src_seq_len, B, d]
+        # parts: [N, B, d]
         feats, parts = self.encoder(src, self.rpn_tokens, src_kp_mask)
         # TODO: How to define what goes into the decoder as memory and get attn weights
         memory = parts
         enc_attn_wts = None
-        
         # Decide on what goes in the memory in decoder
         memory_mask = None
         memory_kp_mask = None

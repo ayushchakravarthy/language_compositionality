@@ -14,7 +14,7 @@ def test(data, model, pad_idx, device, args):
             mask = mask.cpu().numpy()
             correct = np.logical_or(mask, correct_pred)
             correct = correct.all(0).tolist()
-            all_collect_trials += correct
+            all_correct_trials += correct
     accuracy = np.mean(all_correct_trials)
     model.train()
     return accuracy
