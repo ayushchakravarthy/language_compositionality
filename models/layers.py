@@ -71,7 +71,7 @@ class AnyAttention(nn.Module):
         out = torch.einsum("b q g k, b k g c -> b q g c", attn, v.float())
         out = rearrange(out, "b q g c -> b q (g c)")
         out = self.proj(out)
-        return out
+        return out, attn
 
 class MLP(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU,

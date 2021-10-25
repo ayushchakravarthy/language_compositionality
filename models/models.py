@@ -61,15 +61,16 @@ class Encoder(nn.Module):
             mask: [B, seq_len]
         Returns:
             parts: [B, N, d]
+            attn_map: [B, N, num_heads, seq_len]
         """
         mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
-        attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
+        attn_out, attn_map = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
         # TODO: #5 figure out this, this addition is causing parts to be casted as a nn.Tensor, maybe it won't learn anything as a result
         parts = parts + attn_out
         parts = self.reason(parts)
         if self.enc_ffn is not None:
             parts = parts + self.enc_ffn(parts)
-        return parts
+        return parts, attn_map
 
 class Decoder(nn.Module):
     def __init__(self, dim, num_heads=8, patch_size=None, ffn_exp=3, act=nn.GELU):
@@ -93,18 +94,22 @@ class Decoder(nn.Module):
             P: patch_num
         Returns:
             feats: [B, seq_len, d]
+            attn_map: [[B, seq_len, num_heads, N], [B, seq_len, num_heads, N]]
         """
+        attn_maps = []
         dec_mask = None if mask is None else rearrange(mask, 'b s -> b s 1 1')
-        out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
+        out, attn_map1 = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
+        attn_maps.append(attn_map1)
         out = x + out
         out = out + self.ffn1(out)
 
         # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
         # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
-        local_out = self.attn2(q=out, k=out, v=out, mask=dec_mask)
+        local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
+        attn_maps.append(attn_map2)
         out = local_out
         out = out + self.ffn2(out)
-        return out
+        return out, attn_maps
 
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
@@ -134,12 +139,16 @@ class LPBlock(nn.Module):
         Returns: 
             feats: [B, seq_len, d]
             parts: [B, N, d]
+            block_attn_maps: {encoder_attn_maps, decoder_attn_maps}
         """
         # P = x.shape[1]
         # x = rearrange(x, "b p k c -> b (p k) c")
-        parts = self.encoder(x, parts=parts, qpos=self.part_qpos, mask=mask)
-        feats = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask)
-        return feats, parts
+        block_attn_maps = []
+        parts, encoder_attn_maps = self.encoder(x, parts=parts, qpos=self.part_qpos, mask=mask)
+        feats, decoder_attn_maps = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask)
+        block_attn_maps.append(encoder_attn_maps)
+        block_attn_maps.append(decoder_attn_maps)
+        return feats, parts, block_attn_maps
 
 """
 This class should have the computation from the blocks and output parts and wholes from multiple blocks
@@ -161,13 +170,17 @@ class LPEncoder(nn.Module):
         returns:
             feats: [seq_len, B, d]
             parts: [N, B, d]
+            enc_attn_maps: {block1_attn_maps, block2_attn_maps}
         """
+        enc_attn_maps = []
         tokens = rearrange(tokens, "s b d -> b s d") # changing tokens to [B, seq_len, d]
-        feats, parts = self.block_1(tokens, parts, mask)
-        feats, parts = self.block_2(tokens, parts, mask)
+        feats, parts, attn_maps1 = self.block_1(tokens, parts, mask)
+        enc_attn_maps.append(attn_maps1)
+        feats, parts, attn_maps2 = self.block_2(tokens, parts, mask)
+        enc_attn_maps.append(attn_maps2)
         feats = rearrange(feats, "b s d -> s b d")
         parts = rearrange(parts, "b n d -> n b d")
-        return feats, parts
+        return feats, parts, enc_attn_maps
 
 class LPDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
@@ -328,10 +341,9 @@ class LanguageParser(nn.Module):
         # Encoder stuff should go here!
         # feats: [src_seq_len, B, d]
         # parts: [N, B, d]
-        feats, parts = self.encoder(src, self.rpn_tokens, src_kp_mask)
+        feats, parts, enc_attn_wts = self.encoder(src, self.rpn_tokens, src_kp_mask)
         # TODO: How to define what goes into the decoder as memory and get attn weights
         memory = parts
-        enc_attn_wts = None
         # Decide on what goes in the memory in decoder
         memory_mask = None
         memory_kp_mask = None
