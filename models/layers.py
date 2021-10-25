@@ -5,14 +5,12 @@ import inspect
 from einops import rearrange
 
 
-def apply_pos(tensor, pos, num_heads):
+def apply_pos(tensor, pos, num_heads, is_class):
     if pos is None:
         return tensor
-    elif inspect.isclass(pos):
+    elif is_class:
         return tensor + pos._get_pe(tensor)
     elif len(tensor.shape) != len(pos.shape):
-        print(inspect.isclass(pos))
-        print(type(pos))
         tensor = rearrange(tensor, "b n (g c) -> b n g c", g=num_heads)
         tensor = tensor + pos
         tensor = rearrange(tensor, "b n g c -> b n (g c)")
@@ -43,17 +41,17 @@ class AnyAttention(nn.Module):
         self.num_heads = num_heads
         self.proj = nn.Linear(dim, dim)
 
-    def get_qkv(self, q, k, v, qpos, kpos):
-        q = apply_pos(q, qpos, self.num_heads)
-        k = apply_pos(k, kpos, self.num_heads)
-        v = apply_pos(v, None, self.num_heads)
+    def get_qkv(self, q, k, v, qpos, kpos, is_class):
+        q = apply_pos(q, qpos, self.num_heads, is_class)
+        k = apply_pos(k, kpos, self.num_heads, is_class=False)
+        v = apply_pos(v, None, self.num_heads, is_class=False)
         q, k, v = self.norm_q(q), self.norm_k(k), self.norm_v(v)
         q, k, v = self.to_q(q), self.to_k(k), self.to_v(v)
 
         return q, k, v
     
-    def forward(self, q=None, k=None, v=None, qpos=None, kpos=None, mask=None, rel_pos=None):
-        q, k, v = self.get_qkv(q, k, v, qpos, kpos)
+    def forward(self, q=None, k=None, v=None, qpos=None, kpos=None, mask=None, rel_pos=None, is_class=None):
+        q, k, v = self.get_qkv(q, k, v, qpos, kpos, is_class)
 
         # reshape
         q = rearrange(q, "b n (g c) -> b n g c", g=self.num_heads)
@@ -66,10 +64,7 @@ class AnyAttention(nn.Module):
             attn = rel_pos(q, attn)
         attn *= self.scale
         if mask is not None:
-            if len(mask.shape) != len(attn.shape):
-                mask = rearrange(mask, "s b -> b 1 1 s")
             attn = attn.masked_fill(mask.bool(), value=float('-inf'))
-            print(attn.shape, mask.bool().shape)
         attn = F.softmax(attn, dim=-1)
         if mask is not None:
             attn = attn.masked_fill(mask.bool(), value=0)

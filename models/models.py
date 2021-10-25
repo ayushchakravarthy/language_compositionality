@@ -62,7 +62,8 @@ class Encoder(nn.Module):
         Returns:
             parts: [B, N, d]
         """
-        attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask)
+        mask = None if mask is None else rearrange(mask, 's b -> b 1 1 s')
+        attn_out = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
         # TODO: #5 figure out this, this addition is causing parts to be casted as a nn.Tensor, maybe it won't learn anything as a result
         parts = parts + attn_out
         parts = self.reason(parts)
@@ -88,25 +89,23 @@ class Decoder(nn.Module):
             parts: [B, N, d]
             part_kpos: [B, N, 1, d]
             whole_qpos: [B, seq_len, d]
-            #TODO: Same thing here too
             mask: [seq_len, B]
             P: patch_num
         Returns:
             feats: [B, seq_len, d]
         """
         # dec_mask = None if mask is None else rearrange(mask.squeeze(1), "b h w -> b (h w) 1")
-        dec_mask = None if mask is None else mask
-        out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask)
-        exit()
-        out = x + nn.Identity(out)
-        out = out + nn.Identity(self.ffn1(out))
+        dec_mask = None if mask is None else rearrange(mask, 's b -> b s 1 1')
+        out = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
+        out = x + out
+        out = out + self.ffn1(out)
 
         # out = rearrange(out, "b (p k) c -> (b p) k c", p=P)
         # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
         # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
-        local_out = self.attn2(q=out, k=out, v=out, mask=mask)
-        out = nn.Identity(local_out)
-        out = out + nn.Identity(self.ffn2(out))
+        local_out = self.attn2(q=out, k=out, v=out, mask=dec_mask)
+        out = local_out
+        out = out + self.ffn2(out)
         return out
         # return rearrange(out, "(b p) k c -> b p k c", p=P)
 
