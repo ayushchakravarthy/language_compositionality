@@ -310,13 +310,14 @@ class LanguageParser(nn.Module):
         return mask
     
     def _reset_parameters(self):
-        init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
-        init.trunc_normal_(self.rpn_tokens, std=0.02)
         for p in self.parameters():
             # TODO: fix the condition here to not reinitialize the value of rpn_tokens
             if p is not isinstance(p, nn.Parameter):
                 if p.dim() > 1:
                     init.xavier_uniform_(p)
+        # Is this fine?
+        init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
+        init.trunc_normal_(self.rpn_tokens, std=0.02)
 
     def forward(self, src, trg):
         """
@@ -342,7 +343,6 @@ class LanguageParser(nn.Module):
         # feats: [src_seq_len, B, d]
         # parts: [N, B, d]
         feats, parts, enc_attn_wts = self.encoder(src, self.rpn_tokens, src_kp_mask)
-        # TODO: How to define what goes into the decoder as memory and get attn weights
         memory = parts
         # Decide on what goes in the memory in decoder
         memory_mask = None
