@@ -10,6 +10,7 @@ export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
 echo Running on $HOSTNAME
 
+conda init bash
 conda activate lp
 
 gpus=$(echo $CUDA_VISIBLE_DEVICES | tr "," "\n")
@@ -37,7 +38,7 @@ python main.py \
 --learning_rate 0.001 \
 --results_dir language_parser \
 --out_data_file train_defaults_simple \
---checkpoint_path ../weights/defaults_simple.pt \
+--checkpoint_path weights/defaults_simple.pt \
 --checkpoint_every 1 \
 --record_loss_every 20
 
@@ -45,3 +46,4 @@ for gpu in $gpus
 do
 echo "Setting fan for " $gpu "back to auto"
 nvidia_fancontrol auto $gpu
+done

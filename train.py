@@ -50,7 +50,8 @@ def train(run, args):
         )
     if args.load_weights_from is not None:
         model.load_state_dict(torch.load(args.load_weights_from))
-    print(model)
+    if run == 0:
+        print(model)
     model = model.to(device)
     model.train()
 

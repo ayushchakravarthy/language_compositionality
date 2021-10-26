@@ -10,6 +10,7 @@ export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
 echo Running on $HOSTNAME
 
+conda init bash
 conda activate lp
 
 gpus=$(echo $CUDA_VISIBLE_DEVICES | tr "," "\n")
@@ -45,3 +46,4 @@ for gpu in $gpus
 do
 echo "Setting fan for " $gpu "back to auto"
 nvidia_fancontrol auto $gpu
+done
