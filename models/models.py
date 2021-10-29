@@ -114,11 +114,12 @@ class Decoder(nn.Module):
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
         super(LPBlock, self).__init__()
-        self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_enc_heads)
+        self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_heads)
         self.decoder = Decoder(dim, num_heads=num_heads, patch_size=patch_size, ffn_exp=ffn_exp)
         
-        self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_enc_heads))
+        self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
         self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
+        # self.whole_qpos = get_pe(dim, dropout)
         self.whole_qpos = PositionalEncoding(dim, dropout)
 
         self._reset_parameters()
@@ -336,6 +337,7 @@ class LanguageParser(nn.Module):
         # src: [src_seq_len, B, d]
         # trg: [trg_seq_len, B, d]
         src = self.src_embedding(src)
+        src = self.positional_encoding(src)
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
 

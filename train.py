@@ -61,7 +61,7 @@ def train(run, args):
 
     # Optimizer
     params = model.parameters()
-    optimizer = optim.AdamW(params, lr=args.learning_rate)
+    optimizer = optim.Adam(params, lr=args.learning_rate)
 
     # Setup things to record
     loss_data = []
@@ -97,17 +97,17 @@ def train(run, args):
                 print("Training accuracy is ", train_acc)
                 train_accs.append(train_acc)
 
-            # Checkpoint on development data
-            print("Checking development accuracy...")
-            dev_acc = test(dev_data, model, pad_idx, device, args)
-            print("Development accuracy is ", dev_acc)
-            dev_accs.append(dev_acc)
+                # Checkpoint on development data
+                print("Checking development accuracy...")
+                dev_acc = test(dev_data, model, pad_idx, device, args)
+                print("Development accuracy is ", dev_acc)
+                dev_accs.append(dev_acc)
 
-            # Checkpoint on test data
-            print("Checking test accuracy...")
-            test_acc = test(test_data, model, pad_idx, device, args)
-            print("Test accuracy is ", test_acc)
-            test_accs.append(test_acc)
+                # Checkpoint on test data
+                print("Checking test accuracy...")
+                test_acc = test(test_data, model, pad_idx, device, args)
+                print("Test accuracy is ", test_acc)
+                test_accs.append(test_acc)
 
             # Write stats file
             results_path = 'results/%s' % (args.results_dir)

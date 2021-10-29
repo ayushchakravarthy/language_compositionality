@@ -13,24 +13,18 @@ echo Running on $HOSTNAME
 conda init bash
 conda activate lp
 
-gpus=$(echo $CUDA_VISIBLE_DEVICES | tr "," "\n")
-for gpu in $gpus
-do
-echo "Setting fan for" $gpu "to full"
-nvidia_fancontrol full $gpu
-done
 
 python main.py \
 --split simple \
---num_runs 10 \
+--num_runs 1 \
 --batch_size 32 \
---num_epochs 2 \
+--num_epochs 100 \
 --model_type language_parser \
 --d_model 12 \
---nhead 2 \
+--nhead 1 \
 --ffn_exp 3 \
 --patch_size 7 \
---num_enc_heads 2 \
+--num_enc_heads 1 \
 --num_parts 16 \
 --num_decoder_layers 2 \
 --dim_feedforward 20 \
@@ -39,11 +33,5 @@ python main.py \
 --results_dir language_parser \
 --out_data_file train_defaults_simple \
 --checkpoint_path weights/defaults_simple.pt \
---checkpoint_every 1 \
+--checkpoint_every 4 \
 --record_loss_every 20
-
-for gpu in $gpus
-do
-echo "Setting fan for " $gpu "back to auto"
-nvidia_fancontrol auto $gpu
-done

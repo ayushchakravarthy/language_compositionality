@@ -9,6 +9,7 @@ def apply_pos(tensor, pos, num_heads, is_class):
     if pos is None:
         return tensor
     elif is_class:
+        # return pos(tensor)
         return tensor + pos._get_pe(tensor)
     elif len(tensor.shape) != len(pos.shape):
         tensor = rearrange(tensor, "b n (g c) -> b n g c", g=num_heads)

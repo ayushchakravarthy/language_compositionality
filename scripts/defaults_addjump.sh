@@ -10,21 +10,13 @@ export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
 echo Running on $HOSTNAME
 
-conda init bash
 conda activate lp
-
-gpus=$(echo $CUDA_VISIBLE_DEVICES | tr "," "\n")
-for gpu in $gpus
-do
-echo "Setting fan for" $gpu "to full"
-nvidia_fancontrol full $gpu
-done
 
 python main.py \
 --split addjump \
---num_runs 10 \
+--num_runs 1 \
 --batch_size 32 \
---num_epochs 2 \
+--num_epochs 100 \
 --model_type language_parser \
 --d_model 12 \
 --nhead 2 \
@@ -38,12 +30,6 @@ python main.py \
 --learning_rate 0.001 \
 --results_dir language_parser \
 --out_data_file train_defaults_jump \
---checkpoint_path ../weights/defaults_addjump.pt \
---checkpoint_every 1 \
+--checkpoint_path weights/defaults_addjump.pt \
+--checkpoint_every 4 \
 --record_loss_every 20
-
-for gpu in $gpus
-do
-echo "Setting fan for " $gpu "back to auto"
-nvidia_fancontrol auto $gpu
-done
