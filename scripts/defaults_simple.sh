@@ -10,7 +10,8 @@ export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
 echo Running on $HOSTNAME
 
-conda init bash
+source /home/akchak/.bashrc
+source /home/akchak/.bashrc
 conda activate lp
 
 

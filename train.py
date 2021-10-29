@@ -2,6 +2,7 @@
 
 import os
 import json
+import pickle
 
 import torch
 import torch.nn as nn
@@ -118,8 +119,14 @@ def train(run, args):
                      'dev_accs':dev_accs,
                      'test_accs':test_accs}
             results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
+            attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
             with open(results_fn, 'w') as f:
                 json.dump(stats, f)
+            
+            # Write attn weights to pickle file
+
+            with open(attn_file, 'w') as f:
+                pickle.dump(attn_wts, f)
 
             # Save model weights
             if run == 0: #first run only

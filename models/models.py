@@ -103,8 +103,7 @@ class Decoder(nn.Module):
         out = x + out
         out = out + self.ffn1(out)
 
-        # TODO: #1 implement the FullRelPos in layers and pass it as an argument here
-        # this is essentially self-attention right now and not the FullRelativePositional Attention proposed in the paper.
+        # self attention
         local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
         attn_maps.append(attn_map2)
         out = local_out
@@ -312,7 +311,6 @@ class LanguageParser(nn.Module):
     
     def _reset_parameters(self):
         for p in self.parameters():
-            # TODO: fix the condition here to not reinitialize the value of rpn_tokens
             if p is not isinstance(p, nn.Parameter):
                 if p.dim() > 1:
                     init.xavier_uniform_(p)

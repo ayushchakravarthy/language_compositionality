@@ -38,6 +38,8 @@ parser.add_argument('--results_dir', default='language_parser',
                     help='Results subdirectory to save results')
 parser.add_argument('--out_data_file', default='train_results.json',
                     help='Name of output data file with training loss data')
+parser.add_argument('--out_attn_wts', default='attn_weights.pickle',
+                    help='Name of output data file with attn weight maps in pickle file format')
 parser.add_argument('--checkpoint_path',default=None,
                     help='Path to output saved weights.')
 parser.add_argument('--checkpoint_every', type=int, default=1,
