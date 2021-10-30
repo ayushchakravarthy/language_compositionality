@@ -20,7 +20,6 @@ parser.add_argument('--d_model', type=int, default=12,
                     help="Dimension of inputs/outputs in transformer")
 parser.add_argument('--nhead', type=int, default=2,
                     help='Number of heads in transformer with multihead attention')
-# currently unclear what is the point of this
 parser.add_argument('--ffn_exp', type=int, default=3)
 parser.add_argument('--num_parts', type=int, default=16)
 parser.add_argument('--num_decoder_layers', type=int, default=2)

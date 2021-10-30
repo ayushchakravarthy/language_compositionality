@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH -p localLimited
-#SBATCH -A ecortex
+#SBATCH -A ucdavis
 #SBATCH --mem=1G
 #SBATCH --time=12:00:00
 #SBATCH --gres=gpu:1
@@ -30,6 +30,7 @@ python main.py \
 --learning_rate 0.001 \
 --results_dir language_parser \
 --out_data_file train_defaults_jump \
+--out_attn_wts train_defaults_jump_attn_maps \
 --checkpoint_path weights/defaults_addjump.pt \
 --checkpoint_every 4 \
 --record_loss_every 20
