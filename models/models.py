@@ -43,11 +43,10 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class Encoder(nn.Module):
-    def __init__(self, dim, num_parts=64, num_enc_heads=1, act=nn.GELU,
+    def __init__(self, dim, num_parts=64, num_heads=1, act=nn.GELU,
                  has_ffn=True):
         super(Encoder, self).__init__()
-        self.num_heads = num_enc_heads
-        self.enc_attn = AnyAttention(dim, num_enc_heads)
+        self.enc_attn = AnyAttention(dim, num_heads)
         self.reason = SimpleReasoning(num_parts, dim)
         self.enc_ffn = MLP(dim, hidden_features=dim, act_layer=act) if has_ffn else None
 
@@ -65,7 +64,6 @@ class Encoder(nn.Module):
         """
         mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
         attn_out, attn_map = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
-        # TODO: #5 figure out this, this addition is causing parts to be casted as a nn.Tensor, maybe it won't learn anything as a result
         parts = parts + attn_out
         parts = self.reason(parts)
         if self.enc_ffn is not None:
@@ -73,7 +71,7 @@ class Encoder(nn.Module):
         return parts, attn_map
 
 class Decoder(nn.Module):
-    def __init__(self, dim, num_heads=8, patch_size=None, ffn_exp=3, act=nn.GELU):
+    def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
         super(Decoder, self).__init__()
         assert dim % num_heads == 0, f"dim {dim} should be divisible by num_heads {num_heads}."
         self.dim = dim
@@ -111,10 +109,10 @@ class Decoder(nn.Module):
         return out, attn_maps
 
 class LPBlock(nn.Module):
-    def __init__(self, dim, ffn_exp=4, patch_size=7, num_heads=1, num_enc_heads=1, num_parts=0, dropout=0.1):
+    def __init__(self, dim, ffn_exp=4, num_heads=1, num_parts=0, dropout=0.1):
         super(LPBlock, self).__init__()
-        self.encoder = Encoder(dim, num_parts=num_parts, num_enc_heads=num_heads)
-        self.decoder = Decoder(dim, num_heads=num_heads, patch_size=patch_size, ffn_exp=ffn_exp)
+        self.encoder = Encoder(dim, num_parts=num_parts, num_heads=num_heads)
+        self.decoder = Decoder(dim, num_heads=num_heads, ffn_exp=ffn_exp)
         
         self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
         self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
@@ -154,11 +152,11 @@ class LPBlock(nn.Module):
 This class should have the computation from the blocks and output parts and wholes from multiple blocks
 """
 class LPEncoder(nn.Module):
-    def __init__(self, dim, ffn_exp, patch_size, num_heads, num_enc_heads, num_parts, dropout):
+    def __init__(self, dim, ffn_exp, num_heads, num_parts, dropout):
         super(LPEncoder, self).__init__()
-        self.block_1 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
+        self.block_1 = LPBlock(dim, ffn_exp, num_heads,
                                num_parts, dropout)
-        self.block_2 = LPBlock(dim, ffn_exp, patch_size, num_heads, num_enc_heads,
+        self.block_2 = LPBlock(dim, ffn_exp, num_heads,
                                num_parts, dropout)
     
     def forward(self, tokens, parts=None, mask=None):
@@ -254,7 +252,7 @@ class TransformerDecoderLayer(nn.Module):
 
 class LanguageParser(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
-                 ffn_exp, patch_size, num_enc_heads, num_parts, num_decoder_layers,
+                 ffn_exp, num_parts, num_decoder_layers,
                  dim_feedforward, dropout, pad_idx, device):
         super(LanguageParser, self).__init__()
         self.src_vocab_size = src_vocab_size
@@ -262,8 +260,6 @@ class LanguageParser(nn.Module):
         self.d_model = d_model
         self.nhead = nhead
         self.ffn_exp = ffn_exp
-        self.patch_size = patch_size
-        self.num_encoder_heads = num_enc_heads
         self.num_parts = num_parts
         self.num_decoder_layers = num_decoder_layers
         self.dim_feedforwards = dim_feedforward
@@ -279,7 +275,7 @@ class LanguageParser(nn.Module):
 
         # Encoder stuff should go here
         # Define encoder and probably also define the rpn_tokens which should go in as parts
-        self.encoder = LPEncoder(d_model, ffn_exp, patch_size, nhead, num_enc_heads, num_parts, dropout)
+        self.encoder = LPEncoder(d_model, ffn_exp, nhead, num_parts, dropout)
         self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, d_model))
 
         # Decoder 

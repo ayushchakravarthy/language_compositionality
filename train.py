@@ -32,7 +32,6 @@ def train(run, args):
     assert TRG.vocab[TRG.pad_token] == pad_idx
 
     # Model
-    # TODO: args.patch_size should be used in the FullRelPos class, should be modded for NLP
     if args.model_type == "language_parser":
         model = LanguageParser(
             src_vocab_size,
@@ -40,8 +39,6 @@ def train(run, args):
             args.d_model,
             args.nhead,
             args.ffn_exp,
-            args.patch_size,
-            args.num_enc_heads,
             args.num_parts,
             args.num_decoder_layers,
             args.dim_feedforward,
@@ -125,7 +122,7 @@ def train(run, args):
             
             # Write attn weights to pickle file
 
-            with open(attn_file, 'w') as f:
+            with open(attn_file, 'wb') as f:
                 pickle.dump(attn_wts, f)
 
             # Save model weights

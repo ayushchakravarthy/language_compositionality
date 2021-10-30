@@ -22,8 +22,6 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='Number of heads in transformer with multihead attention')
 # currently unclear what is the point of this
 parser.add_argument('--ffn_exp', type=int, default=3)
-parser.add_argument('--patch_size', type=int, default=7)
-parser.add_argument('--num_enc_heads', type=int, default=2)
 parser.add_argument('--num_parts', type=int, default=16)
 parser.add_argument('--num_decoder_layers', type=int, default=2)
 parser.add_argument('--dim_feedforward', type=int, default=20)

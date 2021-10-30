@@ -24,8 +24,6 @@ python main.py \
 --d_model 12 \
 --nhead 1 \
 --ffn_exp 3 \
---patch_size 7 \
---num_enc_heads 1 \
 --num_parts 16 \
 --num_decoder_layers 2 \
 --dim_feedforward 20 \
