@@ -14,5 +14,6 @@ if __name__ == "__main__":
 
     plt.plot(stats.get('test_accs'))
     plt.show()
+    print(attn_maps)
 
 

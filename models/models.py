@@ -68,7 +68,7 @@ class Encoder(nn.Module):
         parts = self.reason(parts)
         if self.enc_ffn is not None:
             parts = parts + self.enc_ffn(parts)
-        return parts, attn_map
+        return parts, attn_map.detach().cpu()
 
 class Decoder(nn.Module):
     def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
@@ -97,13 +97,13 @@ class Decoder(nn.Module):
         attn_maps = []
         dec_mask = None if mask is None else rearrange(mask, 'b s -> b s 1 1')
         out, attn_map1 = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
-        attn_maps.append(attn_map1)
+        attn_maps.append(attn_map1.detach().cpu())
         out = x + out
         out = out + self.ffn1(out)
 
         # self attention
         local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
-        attn_maps.append(attn_map2)
+        attn_maps.append(attn_map2.detach().cpu())
         out = local_out
         out = out + self.ffn2(out)
         return out, attn_maps
@@ -245,8 +245,8 @@ class TransformerDecoderLayer(nn.Module):
         trg = trg + self.dropout3(trg2)
         trg = self.norm3(trg)
 
-        attn_weights = {'Sublayer1': attn_weights1,
-                        'Sublayer2': attn_weights2}
+        attn_weights = {'Sublayer1': attn_weights1.detach().cpu(),
+                        'Sublayer2': attn_weights2.detach().cpu()}
         return trg, attn_weights
 
 

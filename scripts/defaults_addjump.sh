@@ -18,7 +18,7 @@ python main.py \
 --split addjump \
 --num_runs 1 \
 --batch_size 32 \
---num_epochs 100 \
+--num_epochs 1000 \
 --model_type language_parser \
 --d_model 12 \
 --nhead 2 \
