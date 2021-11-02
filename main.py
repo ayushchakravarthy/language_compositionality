@@ -22,6 +22,7 @@ parser.add_argument('--nhead', type=int, default=2,
                     help='Number of heads in transformer with multihead attention')
 parser.add_argument('--ffn_exp', type=int, default=3)
 parser.add_argument('--num_parts', type=int, default=16)
+parser.add_argument('--num_encoder_layers', type=int, default=2)
 parser.add_argument('--num_decoder_layers', type=int, default=2)
 parser.add_argument('--dim_feedforward', type=int, default=20)
 parser.add_argument('--dropout', type=float, default=0.1)
