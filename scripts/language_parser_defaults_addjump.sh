@@ -20,7 +20,7 @@ python main.py \
 --batch_size 32 \
 --num_epochs 1000 \
 --model_type language_parser \
---d_model 12 \
+--d_model 6 \
 --nhead 2 \
 --ffn_exp 3 \
 --num_parts 16 \

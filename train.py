@@ -59,6 +59,7 @@ def train(run, args):
             pad_idx,
             device
         )
+    print(f"Model size: {sum(p.numel() for p in model.parameters())}")
     if args.load_weights_from is not None:
         model.load_state_dict(torch.load(args.load_weights_from))
     if run == 0:
