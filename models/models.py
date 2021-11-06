@@ -456,7 +456,7 @@ class TransformerEncoder(nn.Module):
         for mod in self.layers:
             output, attn_wts = mod(output, src_mask=mask,
                                    src_kp_mask=src_kp_mask)
-            attn_weights.append(attn_wts)
+            attn_weights.append(attn_wts.detach().cpu())
 
         if self.norm is not None:
             output = self.norm(output)

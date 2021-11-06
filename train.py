@@ -24,7 +24,6 @@ def train(run, args):
         args.batch_size,
         device
     )
-
     # vocab
     src_vocab_size = len(SRC.vocab.stoi)
     trg_vocab_size = len(TRG.vocab.stoi)

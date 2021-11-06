@@ -2,9 +2,10 @@
 #SBATCH -p localLimited
 #SBATCH -A ucdavis
 #SBATCH --mem=1G
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
+#SBATCH --output=logs/transformer_def_add_jump_20_runs.txt
 
 export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1

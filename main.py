@@ -1,5 +1,6 @@
 import argparse
 from train import train
+from plot import plot
 
 parser = argparse.ArgumentParser()
 
@@ -48,6 +49,7 @@ parser.add_argument('--record_loss_every', type=int, default=20,
 def main(args):
     for run in range(args.num_runs):
         train(run, args)
+        # plot(run, args)
 
 if __name__ == "__main__":
     args = parser.parse_args()

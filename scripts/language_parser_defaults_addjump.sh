@@ -2,9 +2,10 @@
 #SBATCH -p localLimited
 #SBATCH -A ucdavis
 #SBATCH --mem=1G
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
+#SBATCH --output=logs/language_parser_def_add_jump_20_runs.txt
 
 export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
@@ -16,7 +17,7 @@ conda activate lp
 
 python main.py \
 --split addjump \
---num_runs 1 \
+--num_runs 20 \
 --batch_size 32 \
 --num_epochs 1000 \
 --model_type language_parser \
@@ -32,5 +33,5 @@ python main.py \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \
 --checkpoint_path weights/language_parser/defaults_addjump.pt \
---checkpoint_every 4 \
+--checkpoint_every 2 \
 --record_loss_every 20
