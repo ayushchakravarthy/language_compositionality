@@ -1,5 +1,6 @@
 import math
 import copy
+from typing import ForwardRef
 import numpy as np
 import torch
 import torch.nn as nn
@@ -495,3 +496,68 @@ class TransformerEncoderLayer(nn.Module):
         src = src + self.dropout2(src2)
         src = self.norm2(src)
         return src, attn_weights
+
+class TokenEmbedding(nn.Module):
+    def __init__(self, vocab_size, emb_size):
+        super(TokenEmbedding, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, emb_size)
+        self.emb_size = emb_size
+    
+    def forward(self, tokens):
+        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+
+class TransformerDefault(nn.Module):
+    def __init__(self, num_encoder_layers, num_decoder_layers, emb_size, nhead, 
+                 src_vocab_size, trg_vocab_size, pad_idx, device, dim_feedforward = 512, dropout = 0.1):
+        super(TransformerDefault, self).__init__()
+        self.transformer = nn.Transformer(
+            d_model=emb_size,
+            nhead=nhead,
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            device=device
+        )
+        self.linear = nn.Linear(emb_size, trg_vocab_size)
+        self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
+        self.trg_tok_emb = TokenEmbedding(trg_vocab_size, emb_size)
+        self.positional_encoding = PositionalEncoding(emb_size, dropout)
+        self.device = device
+        self.pad_idx = pad_idx
+
+        self._reset_parameters()
+    
+    def forward(self, src, trg):
+        src_mask, trg_mask, src_padding_mask, trg_padding_mask = self.create_mask(src, trg)
+
+        src_emb = self.positional_encoding(self.src_tok_emb(src))
+        trg_emb = self.positional_encoding(self.trg_tok_emb(trg))
+
+        outs = self.transformer(src_emb, trg_emb, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, src_padding_mask)
+
+        return self.linear(outs)
+
+    def generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
+    
+    def create_mask(self, src, trg):
+        src_seq_len = src.shape[0]
+        trg_seq_len = trg.shape[0]
+
+        trg_mask = self.generate_square_subsequent_mask(trg_seq_len)
+        src_mask = torch.zeros((src_seq_len, src_seq_len), device=self.device).type(torch.bool)
+
+        src_padding_mask = (src == self.pad_idx).transpose(0, 1).to(self.device)
+        trg_padding_mask = (trg == self.pad_idx).transpose(0, 1).to(self.device)
+
+        return src_mask, trg_mask, src_padding_mask, trg_padding_mask
+    
+    def _reset_parameters(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                init.xavier_uniform_(p)
+
+

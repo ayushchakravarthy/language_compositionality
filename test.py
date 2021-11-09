@@ -8,7 +8,10 @@ def test(data, model, pad_idx, device, args, loss_fn=None):
         all_correct_trials = []
         # losses = 0.0
         for batch in data:
-            out, attn_wts = model(batch.src, batch.trg)
+            if args.model_type != "transformer_default":
+                out, attn_wts = model(batch.src, batch.trg)
+            else:
+                out = model(batch.src, batch.trg)
             # trg_out = batch.trg
             # loss = loss_fn(out.reshape(-1, out.shape[-1]), trg_out.reshape(-1))
             # losses += loss.item()

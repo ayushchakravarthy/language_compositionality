@@ -58,6 +58,17 @@ def train(run, args):
             pad_idx,
             device
         )
+    elif args.model_type == "transformer_default":
+        model = TransformerDefault(
+            args.num_encoder_layers,
+            args.num_decoder_layers,
+            args.d_model,
+            args.nhead,
+            src_vocab_size,
+            trg_vocab_size,
+            pad_idx,
+            device,
+        )
     print(f"Model size: {sum(p.numel() for p in model.parameters())}")
     if args.load_weights_from is not None:
         model.load_state_dict(torch.load(args.load_weights_from))
@@ -85,7 +96,10 @@ def train(run, args):
     for epoch in range(args.num_epochs):
         for iter, batch in enumerate(train_data):
             optimizer.zero_grad()
-            out, attn_wts = model(batch.src, batch.trg)
+            if args.model_type != "transformer_default":
+                out, attn_wts = model(batch.src, batch.trg)
+            else:
+                out = model(batch.src, batch.trg)
             loss = loss_fn(out.view(-1, trg_vocab_size), batch.trg.view(-1))
             loss.backward()
             optimizer.step()
@@ -135,8 +149,9 @@ def train(run, args):
             
             # Write attn weights to pickle file
 
-            with open(attn_file, 'wb') as f:
-                pickle.dump(attn_wts, f)
+            if args.model_type != "transformer_default":
+                with open(attn_file, 'wb') as f:
+                    pickle.dump(attn_wts, f)
 
             # Save model weights
             if run == 0: #first run only
