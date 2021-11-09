@@ -7,6 +7,7 @@ from einops import rearrange
 
 
 def plot(run, args):
+    # this is quite pointless
     attn_file = f"results/{args.results_dir}/{args.out_attn_wts}{run}.pickle"
     stats_file = f"results/{args.results_dir}/{args.out_data_file}{run}.json"
     

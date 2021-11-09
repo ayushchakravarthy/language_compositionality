@@ -22,7 +22,7 @@ def train(run, args):
     SRC, TRG, train_data, dev_data, test_data = build_scan(
         args.split,
         args.batch_size,
-        device
+        device=device
     )
     # vocab
     src_vocab_size = len(SRC.vocab.stoi)

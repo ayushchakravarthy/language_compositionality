@@ -2,7 +2,7 @@
 #SBATCH -p localLimited
 #SBATCH -A ucdavis
 #SBATCH --mem=1G
-#SBATCH --time=48:00:00
+#SBATCH --time=200:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
 #SBATCH --output=logs/transformer_def_add_jump_20_runs.txt
@@ -17,7 +17,7 @@ conda activate lp
 
 python main.py \
 --split addjump \
---num_runs 1 \
+--num_runs 20 \
 --batch_size 32 \
 --num_epochs 1000 \
 --model_type transformer \

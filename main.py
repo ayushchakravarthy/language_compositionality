@@ -11,7 +11,7 @@ parser.add_argument('--num_runs', type=int, default=1,
                     help='Number of runs to do')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='Samples per batch')
-parser.add_argument('--num_epochs', type=int, default=2,
+parser.add_argument('--num_epochs', type=int, default=100,
                     help='Number of training epochs')
 
 # Model
@@ -41,7 +41,7 @@ parser.add_argument('--out_attn_wts', default='attn_weights.pickle',
                     help='Name of output data file with attn weight maps in pickle file format')
 parser.add_argument('--checkpoint_path',default=None,
                     help='Path to output saved weights.')
-parser.add_argument('--checkpoint_every', type=int, default=1,
+parser.add_argument('--checkpoint_every', type=int, default=4,
                     help='Epochs before evaluating model and saving weights')
 parser.add_argument('--record_loss_every', type=int, default=20,
                     help='iters before printing and recording loss')

@@ -1,13 +1,18 @@
 import numpy as np
+import math
 import torch
 
-def test(data, model, pad_idx, device, args):
+def test(data, model, pad_idx, device, args, loss_fn=None):
     model.eval()
     with torch.no_grad():
         all_correct_trials = []
+        # losses = 0.0
         for batch in data:
             out, attn_wts = model(batch.src, batch.trg)
-            preds = torch.argmax(out, dim=2)
+            # trg_out = batch.trg
+            # loss = loss_fn(out.reshape(-1, out.shape[-1]), trg_out.reshape(-1))
+            # losses += loss.item()
+            preds = torch.argmax(out, axis=2)
             correct_pred = preds == batch.trg
             correct_pred = correct_pred.cpu().numpy()
             mask = batch.trg == pad_idx

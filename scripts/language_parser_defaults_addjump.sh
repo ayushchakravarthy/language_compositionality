@@ -2,7 +2,7 @@
 #SBATCH -p localLimited
 #SBATCH -A ucdavis
 #SBATCH --mem=1G
-#SBATCH --time=48:00:00
+#SBATCH --time=200:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
 #SBATCH --output=logs/language_parser_def_add_jump_20_runs.txt
@@ -33,5 +33,5 @@ python main.py \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \
 --checkpoint_path weights/language_parser/defaults_addjump.pt \
---checkpoint_every 2 \
+--checkpoint_every 4 \
 --record_loss_every 20

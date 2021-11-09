@@ -2,7 +2,7 @@
 #SBATCH -p localLimited
 #SBATCH -A ucdavis
 #SBATCH --mem=1G
-#SBATCH --time=48:00:00
+#SBATCH --time=100:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
 #SBATCH --output=logs/transformer_def_simple_20_runs.txt
