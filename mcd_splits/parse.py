@@ -39,24 +39,24 @@ def parse():
                 test_data.append(tasks[k])
 
             # store training data
-            with open(f"../data/scan/{split}/train.src", 'w') as f:
+            with open(f"../data/scan/{split}/train.txt", 'w') as f:
                 for text in train_data:
-                    f.write(f"{text[0]}\n")
-            with open(f"../data/scan/{split}/train.trg", 'w') as f:
-                for text in train_data:
-                    f.write(text[1])
-            with open(f"../data/scan/{split}/test.src", 'w') as f:
+                    f.write(f"{text[0]} {text[1]}")
+            # with open(f"../data/scan/{split}/train.trg", 'w') as f:
+            #     for text in train_data:
+            #         f.write(text[1])
+            with open(f"../data/scan/{split}/test.txt", 'w') as f:
                 for text in test_data:
-                    f.write(f"{text[0]}\n")
-            with open(f"../data/scan/{split}/test.trg", 'w') as f:
-                for text in test_data:
-                    f.write(text[1])
-            with open(f"../data/scan/{split}/dev.src", 'w') as f:
+                    f.write(f"{text[0]} {text[1]}")
+            # with open(f"../data/scan/{split}/test.trg", 'w') as f:
+            #     for text in test_data:
+            #         f.write(text[1])
+            with open(f"../data/scan/{split}/dev.txt", 'w') as f:
                 for text in dev_data:
-                    f.write(f"{text[0]}\n")
-            with open(f"../data/scan/{split}/dev.trg", 'w') as f:
-                for text in train_data:
-                    f.write(text[1])
+                    f.write(f"{text[0]} {text[1]}")
+            # with open(f"../data/scan/{split}/dev.trg", 'w') as f:
+            #     for text in train_data:
+            #         f.write(text[1])
 
 if __name__ == "__main__":
     parse()

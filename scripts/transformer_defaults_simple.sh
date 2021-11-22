@@ -23,8 +23,8 @@ python main.py \
 --model_type transformer \
 --d_model 12 \
 --nhead 2 \
---num_encoder_layers 2 \
---num_decoder_layers 2 \
+--num_encoder_layers 1 \
+--num_decoder_layers 1 \
 --dim_feedforward 20 \
 --dropout 0.1 \
 --learning_rate 0.001 \

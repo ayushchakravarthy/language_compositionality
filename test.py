@@ -2,20 +2,20 @@ import numpy as np
 import math
 import torch
 
-def test(data, model, pad_idx, device, args, loss_fn=None):
+def test(data, model, pad_idx, device, args, loss_fn=False):
     model.eval()
     with torch.no_grad():
         all_correct_trials = []
         # losses = 0.0
-        for batch in data:
+        for iter, batch in enumerate(data):
             if args.model_type != "transformer_default":
                 out, attn_wts = model(batch.src, batch.trg)
             else:
                 out = model(batch.src, batch.trg)
-            # trg_out = batch.trg
-            # loss = loss_fn(out.reshape(-1, out.shape[-1]), trg_out.reshape(-1))
-            # losses += loss.item()
             preds = torch.argmax(out, axis=2)
+            # if loss_fn:
+            #     print(batch.trg.T[15])
+            #     print(preds.T[15])
             correct_pred = preds == batch.trg
             correct_pred = correct_pred.cpu().numpy()
             mask = batch.trg == pad_idx

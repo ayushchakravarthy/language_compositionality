@@ -2,9 +2,21 @@
 
 import os
 
+import torch
+import torch.nn as nn
+import datasets
+
 # might make sense to try to use the huggingface stuff to build the dataset instead?
 from torchtext.legacy.data import Field, BucketIterator
 from torchtext.legacy.datasets import TranslationDataset
+
+# from torchtext.data.utils import get_tokenizer
+# from torchtext.datasets import IMDB
+
+
+# class SCANDataset(nn.utils.data.Dataset):
+#     def __init__(path, exts, ):
+
 
 
 def build_scan(split, batch_size, attn_weights=False, device='cpu'):
@@ -35,6 +47,7 @@ def build_scan(split, batch_size, attn_weights=False, device='cpu'):
     dev_ = TranslationDataset(dev_path, exts, fields)
     test_ = TranslationDataset(test_path, exts, fields)
 
+
     # Build Vocabulary
     SRC.build_vocab(train_)
     TRG.build_vocab(train_)
@@ -60,6 +73,18 @@ def build_scan(split, batch_size, attn_weights=False, device='cpu'):
         return SRC, TRG, train, dev, test, eval, text
     else:
         train, dev, test = BucketIterator.splits((train_, dev_, test_),
+                                                 sort=False,
                                                  batch_size=batch_size,
+                                                 shuffle=True,
                                                  device=device)
         return SRC, TRG, train, dev, test
+
+
+
+# def data_updated(split=None, batch_size=None, device='cpu'):
+#     print(IMDB)
+#     exit()
+#     train_iter, test_iter = IMDB(split={'train', 'test'})
+# 
+# if __name__ == "__main__":
+#     data_updated()

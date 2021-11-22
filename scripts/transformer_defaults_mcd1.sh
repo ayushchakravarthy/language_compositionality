@@ -17,9 +17,9 @@ conda activate lp
 
 python main.py \
 --split mcd1 \
---num_runs 1 \
+--num_runs 10 \
 --batch_size 32 \
---num_epochs 1000 \
+--num_epochs 2 \
 --model_type transformer \
 --d_model 12 \
 --nhead 2 \
@@ -32,5 +32,5 @@ python main.py \
 --out_data_file train_defaults_mcd1 \
 --out_attn_wts train_defaults_mcd1_attn_maps \
 --checkpoint_path weights/transformer/defaults_mcd1.pt \
---checkpoint_every 4 \
+--checkpoint_every 1 \
 --record_loss_every 20

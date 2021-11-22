@@ -1,11 +1,11 @@
 import math
 import copy
-from typing import ForwardRef
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
+from einops import rearrange
 
 from .layers import *
 
@@ -26,7 +26,7 @@ class PositionalEncoding(nn.Module):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        pe = torch.zeros(max_len, d_model)
+        pe = torch.zeros((max_len, d_model))
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.arange(0, d_model, 2).float() * (-math.log(10000.0))
         div_term = torch.exp(div_term / d_model)
@@ -398,14 +398,21 @@ class Transformer(nn.Module):
         self._reset_parameters()
 
     def forward(self,src,trg):
+        # src: [src_len, B]
+        # trg: [trg_len, B]
         # Masks
         src_mask = None
         trg_mask,src_kp_mask,trg_kp_mask = self._get_masks(src,trg)
+
         # Input
+        # src: [src_len, B, d_model]
         src = self.src_embedding(src)
         src = self.positional_encoding(src)
+
+        # trg: [trg_len, B, d_model]
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
+
         # Encoder
         memory, enc_attn_wts = self.encoder(src, mask=src_mask,
                                             src_kp_mask=src_kp_mask)

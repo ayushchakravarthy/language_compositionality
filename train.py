@@ -30,6 +30,7 @@ def train(run, args):
     pad_idx = SRC.vocab[SRC.pad_token]
     assert TRG.vocab[TRG.pad_token] == pad_idx
 
+
     # Model
     if args.model_type == "language_parser":
         model = LanguageParser(
@@ -114,49 +115,49 @@ def train(run, args):
                 )
                 loss_data.append(loss_datapoint)
             
-            # Checkpoint
-            if epoch % args.checkpoint_every == 0:
-                # Checkpoint on train data
-                print("Checking training accuracy...")
-                train_acc = test(train_data, model, pad_idx, device, args)
-                print("Training accuracy is ", train_acc)
-                train_accs.append(train_acc)
+        # Checkpoint
+        if epoch % args.checkpoint_every == 0:
+            # Checkpoint on train data
+            print("Checking training accuracy...")
+            train_acc = test(train_data, model, pad_idx, device, args)
+            print("Training accuracy is ", train_acc)
+            train_accs.append(train_acc)
 
-                # Checkpoint on development data
-                print("Checking development accuracy...")
-                dev_acc = test(dev_data, model, pad_idx, device, args)
-                print("Development accuracy is ", dev_acc)
-                dev_accs.append(dev_acc)
+            # Checkpoint on development data
+            print("Checking development accuracy...")
+            dev_acc = test(dev_data, model, pad_idx, device, args)
+            print("Development accuracy is ", dev_acc)
+            dev_accs.append(dev_acc)
 
-                # Checkpoint on test data
-                print("Checking test accuracy...")
-                test_acc = test(test_data, model, pad_idx, device, args)
-                print("Test accuracy is ", test_acc)
-                test_accs.append(test_acc)
+            # Checkpoint on test data
+            print("Checking test accuracy...")
+            test_acc = test(test_data, model, pad_idx, device, args)
+            print("Test accuracy is ", test_acc)
+            test_accs.append(test_acc)
 
-            # Write stats file
-            results_path = 'results/%s' % (args.results_dir)
-            if not os.path.isdir(results_path):
-                os.mkdir(results_path)
-            stats = {'loss_data':loss_data,
-                     'train_accs':train_accs,
-                     'dev_accs':dev_accs,
-                     'test_accs':test_accs}
-            results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
-            attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
-            with open(results_fn, 'w') as f:
-                json.dump(stats, f)
-            
-            # Write attn weights to pickle file
+        # Write stats file
+        results_path = 'results/%s' % (args.results_dir)
+        if not os.path.isdir(results_path):
+            os.mkdir(results_path)
+        stats = {'loss_data':loss_data,
+                 'train_accs':train_accs,
+                 'dev_accs':dev_accs,
+                 'test_accs':test_accs}
+        results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
+        attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
+        with open(results_fn, 'w') as f:
+            json.dump(stats, f)
+        
+        # Write attn weights to pickle file
 
-            if args.model_type != "transformer_default":
-                with open(attn_file, 'wb') as f:
-                    pickle.dump(attn_wts, f)
+        if args.model_type != "transformer_default":
+            with open(attn_file, 'wb') as f:
+                pickle.dump(attn_wts, f)
 
-            # Save model weights
-            if run == 0: #first run only
-                if dev_acc > best_dev_acc: # use dev to decide to save
-                    best_dev_acc = dev_acc
-                    if args.checkpoint_path is not None:
-                        torch.save(model.state_dict(),
-                                   args.checkpoint_path)
+        # Save model weights
+        if run == 0: #first run only
+            if dev_acc > best_dev_acc: # use dev to decide to save
+                best_dev_acc = dev_acc
+                if args.checkpoint_path is not None:
+                    torch.save(model.state_dict(),
+                               args.checkpoint_path)
