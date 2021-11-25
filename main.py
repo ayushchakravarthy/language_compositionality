@@ -5,6 +5,8 @@ from plot import plot
 parser = argparse.ArgumentParser()
 
 # Training Data
+parser.add_argument('--dataset', default='scan',
+                    help='Dataset out of SCAN or COGS')
 parser.add_argument('--split', default='simple',
                     help='SCAN split to use for training and testing')
 parser.add_argument('--num_runs', type=int, default=1,

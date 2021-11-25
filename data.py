@@ -1,22 +1,18 @@
 # Utilities for SCAN dataset
 
 import os
+from sklearn.utils import shuffle
 
 import torch
 import torch.nn as nn
-import datasets
 
-# might make sense to try to use the huggingface stuff to build the dataset instead?
 from torchtext.legacy.data import Field, BucketIterator
 from torchtext.legacy.datasets import TranslationDataset
 
-# from torchtext.data.utils import get_tokenizer
-# from torchtext.datasets import IMDB
-
-
-# class SCANDataset(nn.utils.data.Dataset):
-#     def __init__(path, exts, ):
-
+import pandas as pd
+import re
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 def build_scan(split, batch_size, attn_weights=False, device='cpu'):
@@ -79,12 +75,35 @@ def build_scan(split, batch_size, attn_weights=False, device='cpu'):
                                                  device=device)
         return SRC, TRG, train, dev, test
 
+def build_cogs(batch_size, device='cpu'):
+    path = 'data/cogs'
+    train_path = os.path.join(path, 'train')
+    dev_path = os.path.join(path, 'dev')
+    test_path = os.path.join(path, 'test')
+    train_100_path = os.path.join(path, 'train_100')
+    gen_path = os.path.join(path, 'gen')
 
 
-# def data_updated(split=None, batch_size=None, device='cpu'):
-#     print(IMDB)
-#     exit()
-#     train_iter, test_iter = IMDB(split={'train', 'test'})
-# 
-# if __name__ == "__main__":
-#     data_updated()
+    exts = ('.src', '.trg')
+
+    SRC = Field(init_token='<sos>', eos_token='<eos>')
+    TRG = Field(init_token='<sos>', eos_token='<eos>')
+    # this maybe needed later
+    # dist = Field(init_token='<sos>', eos_token='<eos>')
+    fields = (SRC, TRG)
+
+    train_ = TranslationDataset(train_path, exts, fields)
+    dev_ = TranslationDataset(dev_path, exts, fields)
+    test_ = TranslationDataset(test_path, exts, fields)
+    train_100_ = TranslationDataset(train_100_path, exts, fields)
+    gen_ = TranslationDataset(gen_path, exts, fields)
+
+    SRC.build_vocab(train_)
+    TRG.build_vocab(train_)
+
+    train, dev, test, train_100, gen = BucketIterator.splits((train_, dev_, test_, train_100_, gen_),
+                                             sort=False,
+                                             batch_size=batch_size,
+                                             shuffle=True,
+                                             device=device)
+    return SRC, TRG, train, train_100, dev, test, gen
