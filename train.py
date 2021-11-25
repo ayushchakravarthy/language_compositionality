@@ -146,7 +146,7 @@ def train(run, args):
                     test_accs.append(test_acc)
 
                     print('Checking generalization accuracy...')
-                    gen_acc = test(gen_data, model, pad_idx, device. args)
+                    gen_acc = test(gen_data, model, pad_idx, device, args)
                     print("Generalization accuracy is ", gen_acc)
                     gen_accs.append(gen_acc)
 
@@ -218,7 +218,7 @@ def train(run, args):
                     test_accs.append(test_acc)
 
                     print('Checking generalization accuracy...')
-                    gen_acc = test(gen_data, model, pad_idx, device. args)
+                    gen_acc = test(gen_data, model, pad_idx, device, args)
                     print("Generalization accuracy is ", gen_acc)
                     gen_accs.append(gen_acc)
 

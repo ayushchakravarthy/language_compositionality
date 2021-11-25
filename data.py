@@ -1,18 +1,14 @@
 # Utilities for SCAN dataset
 
 import os
-from sklearn.utils import shuffle
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 from torchtext.legacy.data import Field, BucketIterator
 from torchtext.legacy.datasets import TranslationDataset
 
-import pandas as pd
-import re
-import numpy as np
-from sklearn.model_selection import train_test_split
 
 
 def build_scan(split, batch_size, attn_weights=False, device='cpu'):

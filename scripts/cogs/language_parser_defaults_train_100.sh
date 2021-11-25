@@ -35,5 +35,5 @@ python main.py \
 --out_data_file train_100_defaults \
 --out_attn_wts train_100_defaults_attn_maps \
 --checkpoint_path weights/language_parser/cogs/defaults_train_100.pt \
---checkpoint_every 4 \
---record_loss_every 20
+--checkpoint_every 1 \
+--record_loss_every 10

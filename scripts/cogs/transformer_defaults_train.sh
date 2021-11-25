@@ -34,5 +34,5 @@ python main.py \
 --out_data_file train_defaults \
 --out_attn_wts train_defaults_attn_maps \
 --checkpoint_path weights/transformer/cogs/defaults_train.pt \
---checkpoint_every 4 \
---record_loss_every 20
+--checkpoint_every 1 \
+--record_loss_every 10
