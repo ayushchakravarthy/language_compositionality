@@ -5,7 +5,7 @@
 #SBATCH --time=50:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -c 2
-#SBATCH --output=logs/transdef_def_mcd1.txt
+#SBATCH --output=logs/scan/transformer_def_mcd1.txt
 
 export HOME=`getent passwd $USER | cut -d':' -f6`
 export PYTHONUNBUFFERED=1
@@ -16,11 +16,12 @@ source /home/tqhe/.bashrc
 conda activate lp
 
 python main.py \
+--dataset scan \
 --split mcd1 \
 --num_runs 1 \
 --batch_size 32 \
---num_epochs 1000 \
---model_type transformer_default \
+--num_epochs 100 \
+--model_type transformer \
 --d_model 12 \
 --nhead 2 \
 --num_encoder_layers 2 \
@@ -31,6 +32,6 @@ python main.py \
 --results_dir transformer \
 --out_data_file train_defaults_mcd1 \
 --out_attn_wts train_defaults_mcd1_attn_maps \
---checkpoint_path weights/transformer_default/defaults_mcd1.pt \
---checkpoint_every 4 \
+--checkpoint_path weights/transformer/scan/defaults_mcd1.pt \
+--checkpoint_every 1 \
 --record_loss_every 20

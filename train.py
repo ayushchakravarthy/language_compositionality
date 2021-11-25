@@ -151,7 +151,7 @@ def train(run, args):
                     gen_accs.append(gen_acc)
 
                 # Write stats file
-                results_path = 'results/%s' % (args.results_dir)
+                results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
                 if not os.path.isdir(results_path):
                     os.mkdir(results_path)
                 stats = {'loss_data':loss_data,
@@ -224,7 +224,7 @@ def train(run, args):
 
 
                 # Write stats file
-                results_path = 'results/%s' % (args.results_dir)
+                results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
                 if not os.path.isdir(results_path):
                     os.mkdir(results_path)
                 stats = {'loss_data':loss_data,
@@ -291,7 +291,7 @@ def train(run, args):
                 test_accs.append(test_acc)
 
             # Write stats file
-            results_path = 'results/%s' % (args.results_dir)
+            results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
             if not os.path.isdir(results_path):
                 os.mkdir(results_path)
             stats = {'loss_data':loss_data,
