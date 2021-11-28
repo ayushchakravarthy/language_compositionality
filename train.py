@@ -85,7 +85,7 @@ def train(run, args):
     model.train()
 
     # Loss Function
-    loss_fn = nn.CrossEntropyLoss(ignore_index=pad_idx)
+    loss_fn = nn.NLLLoss(ignore_index=pad_idx)
     loss_fn = loss_fn.to(device)
 
     # Optimizer
@@ -106,13 +106,15 @@ def train(run, args):
         if args.dataset == 'cogs':
             if args.split == 'train':
                 for iter, batch in enumerate(train_data):
-                    optimizer.zero_grad()
+                    trg_input = batch.trg[:-1, :]
                     if args.model_type != "transformer_default":
-                        out, attn_wts = model(batch.src, batch.trg)
+                        out, attn_wts = model(batch.src, trg_input)
                     else:
-                        out = model(batch.src, batch.trg)
-                    loss = loss_fn(out.view(-1, trg_vocab_size), batch.trg.view(-1))
-                    loss.backward()
+                        out = model(batch.src, trg_input)
+                    trg_out = batch.trg[1:, :]
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
+                    optimizer.zero_grad()
+                    optimizer.backward(loss)
                     optimizer.step()
                     # Record Loss
                     if iter % args.record_loss_every == 0:
@@ -178,12 +180,14 @@ def train(run, args):
                                        args.checkpoint_path)
             elif args.split == 'train-100':
                 for iter, batch in enumerate(train_100_data):
-                    optimizer.zero_grad()
+                    trg_input = batch.trg[:-1, :]
                     if args.model_type != "transformer_default":
-                        out, attn_wts = model(batch.src, batch.trg)
+                        out, attn_wts = model(batch.src, trg_input)
                     else:
-                        out = model(batch.src, batch.trg)
-                    loss = loss_fn(out.view(-1, trg_vocab_size), batch.trg.view(-1))
+                        out = model(batch.src, trg_input)
+                    trg_out = batch.trg[1:, :]
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
+                    optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
                     # Record Loss
@@ -251,12 +255,14 @@ def train(run, args):
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
             for iter, batch in enumerate(train_data):
-                optimizer.zero_grad()
+                trg_input = batch.trg[:-1, :]
                 if args.model_type != "transformer_default":
-                    out, attn_wts = model(batch.src, batch.trg)
+                    out, attn_wts = model(batch.src, trg_input)
                 else:
-                    out = model(batch.src, batch.trg)
-                loss = loss_fn(out.view(-1, trg_vocab_size), batch.trg.view(-1))
+                    out = model(batch.src, trg_input)
+                trg_out = batch.trg[1:, :]
+                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 # Record Loss
@@ -286,7 +292,7 @@ def train(run, args):
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                test_acc = test(test_data, model, pad_idx, device, args)
+                test_acc = test(test_data, model, pad_idx, device, args, loss_fn=True)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 

@@ -40,9 +40,6 @@ def build_scan(split, batch_size, attn_weights=False, device='cpu'):
     test_ = TranslationDataset(test_path, exts, fields)
 
 
-    # Build Vocabulary
-    SRC.build_vocab(train_)
-    TRG.build_vocab(train_)
 
     if attn_weights:
         eval_path = os.path.join(path, 'eval')
@@ -62,13 +59,29 @@ def build_scan(split, batch_size, attn_weights=False, device='cpu'):
             f"jump opposite left twice after run right twice", 
             f"run opposite right after jump opposite left thrice", 
         ] 
+
+        # Build Vocabulary
+        SRC.build_vocab(train.src)
+        TRG.build_vocab(train.trg)
+
         return SRC, TRG, train, dev, test, eval, text
     else:
-        train, dev, test = BucketIterator.splits((train_, dev_, test_),
-                                                 sort=False,
-                                                 batch_size=batch_size,
-                                                 shuffle=True,
-                                                 device=device)
+        train, dev = BucketIterator.splits((train_, dev_),
+                                           sort=False,
+                                           batch_size=batch_size,
+                                           shuffle=True,
+                                           device=device)
+        test = BucketIterator(test_,
+                              batch_size=batch_size,
+                              sort=False,
+                              shuffle=True,
+                              train=False,
+                              device=device)
+
+        # Build Vocabulary
+        SRC.build_vocab(train_)
+        TRG.build_vocab(train_)
+
         return SRC, TRG, train, dev, test
 
 def build_cogs(batch_size, device='cpu'):

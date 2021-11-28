@@ -308,9 +308,8 @@ class LanguageParser(nn.Module):
     
     def _reset_parameters(self):
         for p in self.parameters():
-            if p is not isinstance(p, nn.Parameter):
-                if p.dim() > 1:
-                    init.xavier_uniform_(p)
+            if p.dim() > 1:
+                init.xavier_uniform_(p)
         # Is this fine?
         init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
         init.trunc_normal_(self.rpn_tokens, std=0.02)
@@ -394,8 +393,17 @@ class Transformer(nn.Module):
                                           decoder_norm)
         # Output
         self.linear = nn.Linear(d_model,trg_vocab_size)
+
+        self.softmax = nn.LogSoftmax(dim=-1)
+        
+
         # Initialize
         self._reset_parameters()
+    
+    def predict(self, src):
+        src = self.src_embedding(src)
+        src = self.positional_encoding(src)
+
 
     def forward(self,src,trg):
         # src: [src_len, B]
@@ -425,6 +433,10 @@ class Transformer(nn.Module):
                                          memory_kp_mask=memory_kp_mask)
         # Output
         out = self.linear(out)
+
+        # Softmax
+        out = self.softmax(out)
+
         # Attention weights
         attn_wts = {'Encoder':enc_attn_wts,
                     'Decoder':dec_attn_wts}
@@ -439,9 +451,7 @@ class Transformer(nn.Module):
         return trg_mask,src_kp_mask,trg_kp_mask
 
     def _generate_square_subsequent_mask(self,sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf'))
-        mask = mask.masked_fill(mask == 1, float(0.0))
+        mask = torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
         return mask
 
     def _reset_parameters(self):
