@@ -23,9 +23,6 @@ python main.py \
 --num_epochs 100 \
 --model_type language_parser \
 --d_model 6 \
---nhead 2 \
---ffn_exp 3 \
---num_parts 16 \
 --num_decoder_layers 2 \
 --dim_feedforward 20 \
 --dropout 0.1 \

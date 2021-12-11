@@ -69,7 +69,7 @@ class Encoder(nn.Module):
         parts = self.reason(parts)
         if self.enc_ffn is not None:
             parts = parts + self.enc_ffn(parts)
-        return parts, attn_map.detach().cpu()
+        return parts
 
 class Decoder(nn.Module):
     def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
@@ -95,19 +95,16 @@ class Decoder(nn.Module):
             feats: [B, seq_len, d]
             attn_map: [[B, seq_len, num_heads, N], [B, seq_len, num_heads, N]]
         """
-        attn_maps = []
         dec_mask = None if mask is None else rearrange(mask, 'b s -> b s 1 1')
         out, attn_map1 = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
-        attn_maps.append(attn_map1.detach().cpu())
         out = x + out
         out = out + self.ffn1(out)
 
         # self attention
         local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
-        attn_maps.append(attn_map2.detach().cpu())
         out = local_out
         out = out + self.ffn2(out)
-        return out, attn_maps
+        return out
 
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, num_heads=1, num_parts=0, dropout=0.1):
@@ -115,21 +112,10 @@ class LPBlock(nn.Module):
         self.encoder = Encoder(dim, num_parts=num_parts, num_heads=num_heads)
         self.decoder = Decoder(dim, num_heads=num_heads, ffn_exp=ffn_exp)
         
-        self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
-        self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
-        # self.whole_qpos = get_pe(dim, dropout)
         self.whole_qpos = PositionalEncoding(dim, dropout)
 
-        self._reset_parameters()
-
-    def _reset_parameters(self):
-        init.kaiming_uniform_(self.part_qpos, a = math.sqrt(5))
-        init.trunc_normal_(self.part_qpos, std=0.02)
-        init.kaiming_uniform_(self.part_kpos, a = math.sqrt(5))
-        init.trunc_normal_(self.part_kpos, std=0.02)
-
     
-    def forward(self, x, parts, mask=None):
+    def forward(self, x, parts, part_qpos, part_kpos, mask=None):
         """
         Args:
             x: [B, seq_len, d]
@@ -143,43 +129,142 @@ class LPBlock(nn.Module):
         # P = x.shape[1]
         # x = rearrange(x, "b p k c -> b (p k) c")
         block_attn_maps = []
-        parts, encoder_attn_maps = self.encoder(x, parts=parts, qpos=self.part_qpos, mask=mask)
-        feats, decoder_attn_maps = self.decoder(x, parts=parts, part_kpos=self.part_kpos, whole_qpos=self.whole_qpos, mask=mask)
-        block_attn_maps.append(encoder_attn_maps)
-        block_attn_maps.append(decoder_attn_maps)
-        return feats, parts, block_attn_maps
+        parts = self.encoder(x, parts=parts, qpos=part_qpos, mask=mask)
+        feats = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=self.whole_qpos, mask=mask)
+        return feats, parts, part_qpos, mask
+
+class Stage(nn.Module):
+    def __init__(self, dim, num_blocks, num_heads, num_parts, ffn_exp, dropout, last_enc=False):
+        super(Stage, self).__init__()
+        self.part_qpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
+        self.part_kpos = nn.Parameter(torch.Tensor(1, num_parts, 1, dim // num_heads))
+        self.last_enc = last_enc
+
+        blocks = [
+            LPBlock(
+                dim,
+                ffn_exp,
+                num_heads,
+                num_parts,
+                dropout
+            )
+            for i in range(num_blocks)
+        ]
+        self.blocks = nn.ModuleList(blocks)
+        if self.last_enc:
+            self.last_enc = Encoder(
+                dim,
+                num_parts,
+                num_heads,
+                has_ffn=False
+            )
+        self._init_weights()
+    
+    def _init_weights(self):
+        init.kaiming_uniform_(self.part_qpos, a=math.sqrt(5))
+        init.trunc_normal_(self.part_qpos, std=.02)
+        init.kaiming_uniform_(self.part_kpos, a=math.sqrt(5))
+        init.trunc_normal_(self.part_kpos, std=.02)
+    
+    def forward(self, x, parts=None, mask=None):
+        """
+        TODO: Write docstring
+        """
+        part_qpos, part_kpos = self.part_qpos, self.part_kpos
+        part_qpos = part_qpos.expand(x.shape[0], -1, -1, -1)
+        part_kpos = part_kpos.expand(x.shape[0], -1, -1, -1)
+
+        for blk in self.blocks:
+            x, parts, part_qpos, mask = blk(
+                x, 
+                parts=parts,
+                part_qpos=part_qpos,
+                part_kpos=part_kpos,
+                mask=mask
+            )
+        dec_mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
+        if self.last_enc is not None:
+            out = self.last_enc(x, parts=parts, qpos=part_qpos, mask=None)
+        else:
+            out = x
+        return out, parts, mask
+
+        
 
 """
 This class should have the computation from the blocks and output parts and wholes from multiple blocks
 """
 class LPEncoder(nn.Module):
-    def __init__(self, dim, ffn_exp, num_heads, num_parts, dropout):
+    def __init__(self, dim, num_layers, num_heads, num_parts, ffn_exp, dropout, act=nn.GELU):
         super(LPEncoder, self).__init__()
-        self.block_1 = LPBlock(dim, ffn_exp, num_heads,
-                               num_parts, dropout)
-        self.block_2 = LPBlock(dim, ffn_exp, num_heads,
-                               num_parts, dropout)
+
+        self.depth = len(num_layers)
+        self.act = act()
+        self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts[0], dim))
+
+        for i, n_l in enumerate(num_layers):
+            setattr(
+                self,
+                "layer_{}".format(i),
+                Stage(
+                    dim=dim,
+                    num_blocks=n_l,
+                    num_heads=num_heads[i],
+                    num_parts=num_parts[i],
+                    ffn_exp=ffn_exp,
+                    dropout=dropout,
+                    last_enc=(i==len(num_layers)-1)
+                )
+            )
+        
+        self._init_weights()
+
+    def _init_weights(self):
+        init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
+        init.trunc_normal_(self.rpn_tokens, std=.02)
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                n = m.kernel_size[0] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                init.trunc_normal_(m.weight, std=.02)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
+                if not torch.sum(m.weight.data == 0).item() == m.num_features:  # zero gamma
+                    m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                init.trunc_normal_(m.weight, std=.02)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
+
     
-    def forward(self, tokens, parts=None, mask=None):
+    def forward(self, x, mask=None):
         """
         args:
-            tokens: [seq_len, B, d]
-            parts: [B, N, d]
+            x: [seq_len, B, d]
             mask: [B, seq_len]
         returns:
-            feats: [seq_len, B, d]
-            parts: [N, B, d]
-            enc_attn_maps: {block1_attn_maps, block2_attn_maps}
+            TODO: something something parts from the last_encoder learned parts
         """
-        enc_attn_maps = []
-        tokens = rearrange(tokens, "s b d -> b s d") # changing tokens to [B, seq_len, d]
-        feats, parts, attn_maps1 = self.block_1(tokens, parts, mask)
-        enc_attn_maps.append(attn_maps1)
-        feats, parts, attn_maps2 = self.block_2(tokens, parts, mask)
-        enc_attn_maps.append(attn_maps2)
-        feats = rearrange(feats, "b s d -> s b d")
-        parts = rearrange(parts, "b n d -> n b d")
-        return feats, parts, enc_attn_maps
+        out = x
+        rpn_tokens = self.rpn_tokens.expand(x.shape[0], -1, -1)
+        # reshape mask?
+
+        for i in range(self.depth):
+            layer = getattr(self, "layer_{}".format(i))
+            out, rpn_tokens, mask = layer(out, rpn_tokens, mask)
+        
+        out = self.act(out)
+
+        # ideally this should be N, B, d
+        print(out.shape)
+        exit()
+        # does this go into the transformer decoder directly?
+        return out
 
 class LPDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
@@ -253,17 +338,14 @@ class TransformerDecoderLayer(nn.Module):
 
 class LanguageParser(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
-                 ffn_exp, num_parts, num_decoder_layers,
-                 dim_feedforward, dropout, pad_idx, device):
+                 num_decoder_layers, dim_feedforward, dropout, pad_idx, device):
         super(LanguageParser, self).__init__()
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
         self.nhead = nhead
-        self.ffn_exp = ffn_exp
-        self.num_parts = num_parts
         self.num_decoder_layers = num_decoder_layers
-        self.dim_feedforwards = dim_feedforward
+        self.dim_feedforward = dim_feedforward
         self.dropout = dropout
         self.pad_idx = pad_idx
         self.activation = 'relu'
@@ -276,8 +358,7 @@ class LanguageParser(nn.Module):
 
         # Encoder stuff should go here
         # Define encoder and probably also define the rpn_tokens which should go in as parts
-        self.encoder = LPEncoder(d_model, ffn_exp, nhead, num_parts, dropout)
-        self.rpn_tokens = nn.Parameter(torch.Tensor(1, num_parts, d_model))
+        self.encoder = lp_base()
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -310,9 +391,6 @@ class LanguageParser(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 init.xavier_uniform_(p)
-        # Is this fine?
-        init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
-        init.trunc_normal_(self.rpn_tokens, std=0.02)
 
     def forward(self, src, trg):
         """
@@ -336,9 +414,7 @@ class LanguageParser(nn.Module):
         trg = self.positional_encoding(trg)
 
         # Encoder stuff should go here!
-        # feats: [src_seq_len, B, d]
-        # parts: [N, B, d]
-        feats, parts, enc_attn_wts = self.encoder(src, self.rpn_tokens, src_kp_mask)
+        feats, parts, enc_attn_wts = self.encoder(src, src_kp_mask)
         memory = parts
         # Decide on what goes in the memory in decoder
         memory_mask = None
@@ -578,3 +654,7 @@ class TransformerDefault(nn.Module):
                 init.xavier_uniform_(p)
 
 
+def lp_base():
+    model_cfg = dict(dim=64, num_layers=[1, 1, 8, 1], num_heads=[2, 2, 4, 4],
+                     num_parts=[64, 64, 128, 128], ffn_exp=3, dropout=0.3)
+    return LPEncoder(**model_cfg)

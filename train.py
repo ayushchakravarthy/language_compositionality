@@ -44,8 +44,6 @@ def train(run, args):
             trg_vocab_size,
             args.d_model,
             args.nhead,
-            args.ffn_exp,
-            args.num_parts,
             args.num_decoder_layers,
             args.dim_feedforward,
             args.dropout,
