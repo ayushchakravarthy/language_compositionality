@@ -44,7 +44,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class Encoder(nn.Module):
-    def __init__(self, dim, num_parts=64, num_heads=1, act=nn.GELU,
+    def __init__(self, dim, num_parts, num_heads, act=nn.GELU,
                  has_ffn=True):
         super(Encoder, self).__init__()
         self.enc_attn = AnyAttention(dim, num_heads)
@@ -63,7 +63,13 @@ class Encoder(nn.Module):
             parts: [B, N, d]
             attn_map: [B, N, num_heads, seq_len]
         """
-        mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
+        if mask is None:
+            mask = None
+        elif len(mask.shape) == 2:
+            mask = rearrange(mask, 'b s -> b 1 1 s')
+        else:
+            mask = mask
+        
         attn_out, attn_map = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
         parts = parts + attn_out
         parts = self.reason(parts)
@@ -142,17 +148,17 @@ class Stage(nn.Module):
 
         blocks = [
             LPBlock(
-                dim,
-                ffn_exp,
-                num_heads,
-                num_parts,
-                dropout
+                dim=dim,
+                ffn_exp=ffn_exp,
+                num_heads=num_heads,
+                num_parts=num_parts,
+                dropout=dropout
             )
-            for i in range(num_blocks)
+            for _ in range(num_blocks)
         ]
         self.blocks = nn.ModuleList(blocks)
         if self.last_enc:
-            self.last_enc = Encoder(
+            self.last_encoder = Encoder(
                 dim,
                 num_parts,
                 num_heads,
@@ -182,9 +188,9 @@ class Stage(nn.Module):
                 part_kpos=part_kpos,
                 mask=mask
             )
-        dec_mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
-        if self.last_enc is not None:
-            out = self.last_enc(x, parts=parts, qpos=part_qpos, mask=None)
+        if self.last_enc:
+            dec_mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
+            out = self.last_encoder(x, parts=parts, qpos=part_qpos, mask=dec_mask)
         else:
             out = x
         return out, parts, mask
@@ -250,9 +256,8 @@ class LPEncoder(nn.Module):
         returns:
             TODO: something something parts from the last_encoder learned parts
         """
-        out = x
-        rpn_tokens = self.rpn_tokens.expand(x.shape[0], -1, -1)
-        # reshape mask?
+        out = rearrange(x, 's b d -> b s d')
+        rpn_tokens = self.rpn_tokens.expand(out.shape[0], -1, -1)
 
         for i in range(self.depth):
             layer = getattr(self, "layer_{}".format(i))
@@ -261,8 +266,6 @@ class LPEncoder(nn.Module):
         out = self.act(out)
 
         # ideally this should be N, B, d
-        print(out.shape)
-        exit()
         # does this go into the transformer decoder directly?
         return out
 
@@ -358,7 +361,7 @@ class LanguageParser(nn.Module):
 
         # Encoder stuff should go here
         # Define encoder and probably also define the rpn_tokens which should go in as parts
-        self.encoder = lp_base()
+        self.encoder = lp_base(d_model)
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -369,6 +372,9 @@ class LanguageParser(nn.Module):
 
         # Output
         self.linear = nn.Linear(d_model, trg_vocab_size)
+
+        # Softmax
+        self.softmax = nn.LogSoftmax(dim=-1)
 
         # Initialize parameters
         self._reset_parameters()
@@ -414,8 +420,9 @@ class LanguageParser(nn.Module):
         trg = self.positional_encoding(trg)
 
         # Encoder stuff should go here!
-        feats, parts, enc_attn_wts = self.encoder(src, src_kp_mask)
+        parts = self.encoder(src, src_kp_mask)
         memory = parts
+        enc_attn_wts = None
         # Decide on what goes in the memory in decoder
         memory_mask = None
         memory_kp_mask = None
@@ -426,6 +433,9 @@ class LanguageParser(nn.Module):
         
         # Output
         out = self.linear(out)
+
+        # Softmax
+        out = self.softmax(out)
 
         # Attention Weights
         # Decide on what goes in the enc_attn_wts
@@ -654,7 +664,8 @@ class TransformerDefault(nn.Module):
                 init.xavier_uniform_(p)
 
 
-def lp_base():
-    model_cfg = dict(dim=64, num_layers=[1, 1, 8, 1], num_heads=[2, 2, 4, 4],
-                     num_parts=[64, 64, 128, 128], ffn_exp=3, dropout=0.3)
+# TODO: figure out how to change num_parts without breaking
+def lp_base(dim):
+    model_cfg = dict(dim=dim, num_layers=[1, 1, 8, 1], num_heads=[2, 2, 3, 3],
+                     num_parts=[16, 16, 16, 16], ffn_exp=3, dropout=0.3)
     return LPEncoder(**model_cfg)

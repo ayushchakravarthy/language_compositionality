@@ -45,7 +45,7 @@ class AnyAttention(nn.Module):
     def get_qkv(self, q, k, v, qpos, kpos, is_class):
         q = apply_pos(q, qpos, self.num_heads, is_class)
         k = apply_pos(k, kpos, self.num_heads, is_class=False)
-        v = apply_pos(v, None, self.num_heads, is_class=False)
+        v = apply_pos(v, None, 0, is_class=False)
         q, k, v = self.norm_q(q), self.norm_k(k), self.norm_v(v)
         q, k, v = self.to_q(q), self.to_k(k), self.to_v(v)
 
