@@ -26,7 +26,7 @@ python main.py \
 --nhead 8 \
 --dim_feedforward 2048 \
 --dropout 0.1 \
---learning_rate 0.001 \
+--learning_rate 0.0001 \
 --results_dir language_parser \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \
