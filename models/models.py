@@ -453,7 +453,7 @@ class LanguageParser(nn.Module):
 
         # Encoder stuff should go here!
         parts = self.encoder(src, src_kp_mask)
-        memory = parts
+        memory = parts.transpose(0, 1)
         enc_attn_wts = None
         # Decide on what goes in the memory in decoder
         memory_mask = None
