@@ -43,6 +43,38 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
 
+
+class SingleStep(nn.Module):
+    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
+                 activation='relu'):
+        super(SingleStep, self).__init__()
+        self.d_model = d_model
+        self.nhead = nhead
+        self.dim_feedforward = dim_feedforward
+
+        # Self attention
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        # Feedforward
+        self.linear = nn.Linear(d_model, dim_feedforward)
+        self.dropout = nn.Dropout(dropout)
+        # Normalization
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout1 = nn.Dropout(dropout)
+        # Activation
+        self.activation = _get_activation_fn(activation)
+
+    def forward(self, src, src_mask=None, src_kp_mask=None):
+        src2, attn_weights = self.self_attn(src, src, src, attn_mask=src_mask,
+                                key_padding_mask=src_kp_mask)
+        src = src + self.dropout1(src2)
+        src = self.norm1(src)
+        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
+        src = src + self.dropout2(src2)
+        src = self.norm2(src)
+        return src, attn_weights
+
+
+
 class Encoder(nn.Module):
     def __init__(self, dim, num_parts, num_heads, act=nn.GELU,
                  has_ffn=True):
