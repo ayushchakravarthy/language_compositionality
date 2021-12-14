@@ -32,6 +32,6 @@ python main.py \
 --results_dir transformer \
 --out_data_file train_defaults_mcd1 \
 --out_attn_wts train_defaults_mcd1_attn_maps \
---checkpoint_path weights/transformer/scan/defaults_mcd1.pt \
+--checkpoint_path ../weights/transformer/scan/defaults_mcd1.pt \
 --checkpoint_every 1 \
 --record_loss_every 20

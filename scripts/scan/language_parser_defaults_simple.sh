@@ -30,6 +30,6 @@ python main.py \
 --results_dir language_parser \
 --out_data_file train_defaults_simple \
 --out_attn_wts train_defaults_simple_attn_maps \
---checkpoint_path weights/language_parser/scan/defaults_simple.pt \
+--checkpoint_path ../weights/language_parser/scan/defaults_simple.pt \
 --checkpoint_every 4 \
 --record_loss_every 20

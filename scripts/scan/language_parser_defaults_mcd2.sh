@@ -33,6 +33,6 @@ python main.py \
 --results_dir language_parser \
 --out_data_file train_defaults_mcd2 \
 --out_attn_wts train_defaults_mcd2_attn_maps \
---checkpoint_path weights/language_parser/scan/defaults_mcd2.pt \
+--checkpoint_path ../weights/language_parser/scan/defaults_mcd2.pt \
 --checkpoint_every 4 \
 --record_loss_every 20

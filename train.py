@@ -174,7 +174,7 @@ def train(run, args):
                     if dev_acc > best_dev_acc: # use dev to decide to save
                         best_dev_acc = dev_acc
                         if args.checkpoint_path is not None:
-                            torch.save(model,
+                            torch.save(model.state_dict(),
                                        args.checkpoint_path)
             elif args.split == 'train-100':
                 for iter, batch in enumerate(train_100_data):
@@ -249,7 +249,7 @@ def train(run, args):
                     if dev_acc > best_dev_acc: # use dev to decide to save
                         best_dev_acc = dev_acc
                         if args.checkpoint_path is not None:
-                            torch.save(model,
+                            torch.save(model.state_dict(),
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
             for iter, batch in enumerate(train_data):
@@ -318,7 +318,7 @@ def train(run, args):
                 if dev_acc > best_dev_acc: # use dev to decide to save
                     best_dev_acc = dev_acc
                     if args.checkpoint_path is not None:
-                        torch.save(model,
+                        torch.save(model.state_dict(),
                                    args.checkpoint_path)
         else:
             assert args.dataset not in ['scan', 'cogs'], "Unknown split"

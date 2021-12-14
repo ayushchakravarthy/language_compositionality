@@ -33,6 +33,6 @@ python main.py \
 --results_dir transformer \
 --out_data_file train_100_defaults \
 --out_attn_wts train_100_defaults_attn_maps \
---checkpoint_path weights/transformer/cogs/defaults_train_100.pt \
+--checkpoint_path ../weights/transformer/cogs/defaults_train_100.pt \
 --checkpoint_every 1 \
 --record_loss_every 10
