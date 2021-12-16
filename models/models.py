@@ -107,7 +107,7 @@ class Encoder(nn.Module):
         parts = self.reason(parts)
         if self.enc_ffn is not None:
             parts = parts + self.enc_ffn(parts)
-        return parts
+        return parts, attn_map
 
 class Decoder(nn.Module):
     def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
@@ -142,7 +142,12 @@ class Decoder(nn.Module):
         local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
         out = local_out
         out = out + self.ffn2(out)
-        return out
+
+        attn_maps = {
+            'MHA': attn_map1,
+            'Self': attn_map2
+        }
+        return out, attn_maps
 
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, num_heads=1, num_parts=0, dropout=0.1):
@@ -166,10 +171,14 @@ class LPBlock(nn.Module):
         """
         # P = x.shape[1]
         # x = rearrange(x, "b p k c -> b (p k) c")
-        block_attn_maps = []
-        parts = self.encoder(x, parts=parts, qpos=part_qpos, mask=mask)
-        feats = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=self.whole_qpos, mask=mask)
-        return feats, parts, part_qpos, mask
+        parts, enc_attn_maps = self.encoder(x, parts=parts, qpos=part_qpos, mask=mask)
+        feats, dec_attn_maps = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=self.whole_qpos, mask=mask)
+
+        block_attn_maps = {
+            'encoder': enc_attn_maps,
+            'decoder': dec_attn_maps
+        }
+        return feats, parts, part_qpos, mask, block_attn_maps
 
 class Stage(nn.Module):
     def __init__(self, dim, num_blocks, num_heads, num_parts, ffn_exp, dropout, last_enc=False):
@@ -212,20 +221,26 @@ class Stage(nn.Module):
         part_qpos = part_qpos.expand(x.shape[0], -1, -1, -1)
         part_kpos = part_kpos.expand(x.shape[0], -1, -1, -1)
 
+        stage_attn_maps = []
+
         for blk in self.blocks:
-            x, parts, part_qpos, mask = blk(
+            x, parts, part_qpos, mask, attn_map = blk(
                 x, 
                 parts=parts,
                 part_qpos=part_qpos,
                 part_kpos=part_kpos,
                 mask=mask
             )
+
+            stage_attn_maps.append(attn_map)
+
         if self.last_enc:
             dec_mask = None if mask is None else rearrange(mask, 'b s -> b 1 1 s')
-            out = self.last_encoder(x, parts=parts, qpos=part_qpos, mask=dec_mask)
+            out, attn_map = self.last_encoder(x, parts=parts, qpos=part_qpos, mask=dec_mask)
+            stage_attn_maps.append(attn_map)
         else:
             out = x
-        return out, parts, mask
+        return out, parts, mask, stage_attn_maps
 
         
 
@@ -291,15 +306,18 @@ class LPEncoder(nn.Module):
         out = rearrange(x, 's b d -> b s d')
         rpn_tokens = self.rpn_tokens.expand(out.shape[0], -1, -1)
 
+        total_attn_maps = []
+
         for i in range(self.depth):
             layer = getattr(self, "layer_{}".format(i))
-            out, rpn_tokens, mask = layer(out, rpn_tokens, mask)
+            out, rpn_tokens, mask, attn_map = layer(out, rpn_tokens, mask)
+            total_attn_maps.append(attn_map)
         
         out = self.act(out)
 
         # ideally this should be N, B, d
         # does this go into the transformer decoder directly?
-        return out
+        return out, total_attn_maps
 
 class LPDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
@@ -452,9 +470,8 @@ class LanguageParser(nn.Module):
         trg = self.positional_encoding(trg)
 
         # Encoder stuff should go here!
-        parts = self.encoder(src, src_kp_mask)
+        parts, enc_attn_wts = self.encoder(src, src_kp_mask)
         memory = parts.transpose(0, 1)
-        enc_attn_wts = None
         # Decide on what goes in the memory in decoder
         memory_mask = None
         memory_kp_mask = None
