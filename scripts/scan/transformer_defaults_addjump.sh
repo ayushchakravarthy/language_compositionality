@@ -22,13 +22,13 @@ python main.py \
 --batch_size 128 \
 --num_epochs 100 \
 --model_type transformer \
---d_model 512 \
+--d_model 400 \
 --nhead 8 \
 --num_encoder_layers 6 \
 --num_decoder_layers 6 \
 --dim_feedforward 2048 \
---dropout 0.3 \
---learning_rate 0.00007 \
+--dropout 0.1 \
+--learning_rate 0.00004 \
 --results_dir transformer \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \

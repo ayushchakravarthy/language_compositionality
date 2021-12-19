@@ -128,7 +128,6 @@ class Decoder(nn.Module):
             part_kpos: [B, N, 1, d] 
             whole_qpos: PositionalEncoding instance
             mask: [B, seq_len]
-            P: patch_num
         Returns:
             feats: [B, seq_len, d]
             attn_map: [[B, seq_len, num_heads, N], [B, seq_len, num_heads, N]]
@@ -169,8 +168,6 @@ class LPBlock(nn.Module):
             parts: [B, N, d]
             block_attn_maps: {encoder_attn_maps, decoder_attn_maps}
         """
-        # P = x.shape[1]
-        # x = rearrange(x, "b p k c -> b (p k) c")
         parts, enc_attn_maps = self.encoder(x, parts=parts, qpos=part_qpos, mask=mask)
         feats, dec_attn_maps = self.decoder(x, parts=parts, part_kpos=part_kpos, whole_qpos=self.whole_qpos, mask=mask)
 
@@ -571,7 +568,7 @@ class Transformer(nn.Module):
 
         # Softmax
         out = self.softmax(out)
-
+        
         # Attention weights
         attn_wts = {'Encoder':enc_attn_wts,
                     'Decoder':dec_attn_wts}
@@ -580,6 +577,8 @@ class Transformer(nn.Module):
     def _get_masks(self,src,trg):
         sz = trg.shape[0]
         trg_mask = self._generate_square_subsequent_mask(sz)
+        # trg_mask = torch.ones((sz, sz)) * np.random.choice([0, 1], size=(sz, sz), p=[1./3, 2./3]) * float('-inf')
+        # trg_mask[torch.isnan(trg_mask)] = 0
         trg_mask = trg_mask.to(self.device)
         src_kp_mask = (src == self.pad_idx).transpose(0,1).to(self.device)
         trg_kp_mask = (trg == self.pad_idx).transpose(0,1).to(self.device)
@@ -715,6 +714,6 @@ class TransformerDefault(nn.Module):
 
 # TODO: figure out how to change num_parts without breaking
 def lp_base(dim):
-    model_cfg = dict(dim=dim, num_layers=[1, 1, 2, 2], num_heads=[4, 4, 8, 8],
-                     num_parts=[16, 16, 16, 16], ffn_exp=3, dropout=0.1)
+    model_cfg = dict(dim=dim, num_layers=[2, 2, 4, 4], num_heads=[8, 8, 8, 8],
+                     num_parts=[64, 64, 64, 64], ffn_exp=3, dropout=0.1)
     return LPEncoder(**model_cfg)
