@@ -19,7 +19,7 @@ python main.py \
 --dataset scan \
 --split simple \
 --num_runs 1 \
---batch_size 128 \
+--batch_size 64 \
 --num_epochs 100 \
 --model_type transformer \
 --d_model 256 \

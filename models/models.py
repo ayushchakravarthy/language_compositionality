@@ -7,19 +7,13 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from einops import rearrange
 
-from .layers import *
+from .lp_layers import LPLayerEncoder, LPLayerDecoder
+from .tf_layers import TransformerEncoderLayer, TransformerDecoderLayer
 
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
 
-def _get_activation_fn(activation):
-    if activation == 'relu':
-        return F.relu
-    elif activation == 'gelu':
-        return F.gelu
-    else:
-        raise RuntimeError(f"Invalid Activation {activation}")
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -43,116 +37,11 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:x.size(0), :]
         return self.dropout(x)
 
-
-class SingleStep(nn.Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 activation='relu'):
-        super(SingleStep, self).__init__()
-        self.d_model = d_model
-        self.nhead = nhead
-        self.dim_feedforward = dim_feedforward
-
-        # Self attention
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # Feedforward
-        self.linear = nn.Linear(d_model, dim_feedforward)
-        self.dropout = nn.Dropout(dropout)
-        # Normalization
-        self.norm = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(dropout)
-        # Activation
-        self.activation = _get_activation_fn(activation)
-
-    def forward(self, src, src_mask=None, src_kp_mask=None):
-        src2, attn_weights = self.self_attn(src, src, src, attn_mask=src_mask,
-                                key_padding_mask=src_kp_mask)
-        src = src + self.dropout1(src2)
-        src = self.norm1(src)
-        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-        src = src + self.dropout2(src2)
-        src = self.norm2(src)
-        return src, attn_weights
-
-
-
-class Encoder(nn.Module):
-    def __init__(self, dim, num_parts, num_heads, act=nn.GELU,
-                 has_ffn=True):
-        super(Encoder, self).__init__()
-        self.enc_attn = AnyAttention(dim, num_heads)
-        self.reason = SimpleReasoning(num_parts, dim)
-        self.enc_ffn = MLP(dim, hidden_features=dim, act_layer=act) if has_ffn else None
-
-    def forward(self, feats, parts=None, qpos=None, kpos=None, mask=None):
-        """
-        Args:
-            feats: [B, seq_len, d]
-            parts: [B, N, d]
-            qpos: [B, N, 1, d]
-            kpos: [B, seq_len, d]
-            mask: [B, seq_len]
-        Returns:
-            parts: [B, N, d]
-            attn_map: [B, N, num_heads, seq_len]
-        """
-        if mask is None:
-            mask = None
-        elif len(mask.shape) == 2:
-            mask = rearrange(mask, 'b s -> b 1 1 s')
-        else:
-            mask = mask
-        
-        attn_out, attn_map = self.enc_attn(q=parts, k=feats, v=feats, qpos=qpos, kpos=kpos, mask=mask, is_class=False)
-        parts = parts + attn_out
-        parts = self.reason(parts)
-        if self.enc_ffn is not None:
-            parts = parts + self.enc_ffn(parts)
-        return parts, attn_map
-
-class Decoder(nn.Module):
-    def __init__(self, dim, num_heads=8, ffn_exp=3, act=nn.GELU):
-        super(Decoder, self).__init__()
-        assert dim % num_heads == 0, f"dim {dim} should be divisible by num_heads {num_heads}."
-        self.dim = dim
-        self.num_heads = num_heads
-        self.attn1 = AnyAttention(dim, num_heads)
-        self.attn2 = AnyAttention(dim, num_heads)
-        self.ffn1 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
-        self.ffn2 = MLP(dim, hidden_features=dim*ffn_exp, act_layer=act, norm_layer=nn.LayerNorm)
-
-    def forward(self, x, parts=None, part_kpos=None, whole_qpos=None, mask=None):
-        """
-        Args:
-            x: [B, seq_len, d]
-            parts: [B, N, d]
-            part_kpos: [B, N, 1, d] 
-            whole_qpos: PositionalEncoding instance
-            mask: [B, seq_len]
-        Returns:
-            feats: [B, seq_len, d]
-            attn_map: [[B, seq_len, num_heads, N], [B, seq_len, num_heads, N]]
-        """
-        dec_mask = None if mask is None else rearrange(mask, 'b s -> b s 1 1')
-        out, attn_map1 = self.attn1(q=x, k=parts, v=parts, qpos=whole_qpos, kpos=part_kpos, mask=dec_mask, is_class=True)
-        out = x + out
-        out = out + self.ffn1(out)
-
-        # self attention
-        local_out, attn_map2 = self.attn2(q=out, k=out, v=out, mask=dec_mask)
-        out = local_out
-        out = out + self.ffn2(out)
-
-        attn_maps = {
-            'MHA': attn_map1,
-            'Self': attn_map2
-        }
-        return out, attn_maps
-
 class LPBlock(nn.Module):
     def __init__(self, dim, ffn_exp=4, num_heads=1, num_parts=0, dropout=0.1):
         super(LPBlock, self).__init__()
-        self.encoder = Encoder(dim, num_parts=num_parts, num_heads=num_heads)
-        self.decoder = Decoder(dim, num_heads=num_heads, ffn_exp=ffn_exp)
+        self.encoder = LPLayerEncoder(dim, num_parts=num_parts, num_heads=num_heads)
+        self.decoder = LPLayerDecoder(dim, num_heads=num_heads, ffn_exp=ffn_exp)
         
         self.whole_qpos = PositionalEncoding(dim, dropout)
 
@@ -196,7 +85,7 @@ class Stage(nn.Module):
         ]
         self.blocks = nn.ModuleList(blocks)
         if self.last_enc:
-            self.last_encoder = Encoder(
+            self.last_encoder = LPLayerEncoder(
                 dim,
                 num_parts,
                 num_heads,
@@ -212,7 +101,14 @@ class Stage(nn.Module):
     
     def forward(self, x, parts=None, mask=None):
         """
-        TODO: Write docstring
+        Args:
+            x: [B, seq_len, d]
+            parts: [B, N, d]
+            mask: [B, seq_len]
+        Returns:
+            out: [B, seq_len, d] or [B, N, d]
+            parts: [B, N, d]
+            stage_attn_maps: list of block attn maps
         """
         part_qpos, part_kpos = self.part_qpos, self.part_kpos
         part_qpos = part_qpos.expand(x.shape[0], -1, -1, -1)
@@ -238,12 +134,8 @@ class Stage(nn.Module):
         else:
             out = x
         return out, parts, mask, stage_attn_maps
-
         
 
-"""
-This class should have the computation from the blocks and output parts and wholes from multiple blocks
-"""
 class LPEncoder(nn.Module):
     def __init__(self, dim, num_layers, num_heads, num_parts, ffn_exp, dropout, act=nn.GELU):
         super(LPEncoder, self).__init__()
@@ -294,13 +186,14 @@ class LPEncoder(nn.Module):
     
     def forward(self, x, mask=None):
         """
-        args:
-            x: [seq_len, B, d]
+        Args:
+            x: [B, seq_len, d]
             mask: [B, seq_len]
-        returns:
-            TODO: something something parts from the last_encoder learned parts
+        Returns:
+            out: [B, N, d]
+            total_attn_maps: list of all LPEncoder attn maps
         """
-        out = rearrange(x, 's b d -> b s d')
+        out = x
         rpn_tokens = self.rpn_tokens.expand(out.shape[0], -1, -1)
 
         total_attn_maps = []
@@ -312,13 +205,11 @@ class LPEncoder(nn.Module):
         
         out = self.act(out)
 
-        # ideally this should be N, B, d
-        # does this go into the transformer decoder directly?
         return out, total_attn_maps
 
-class LPDecoder(nn.Module):
+class TransformerDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
-        super(LPDecoder, self).__init__()
+        super(TransformerDecoder, self).__init__()
         self.num_layers = num_layers
         self.norm = norm
 
@@ -339,51 +230,27 @@ class LPDecoder(nn.Module):
         
         return output, attn_weights
 
-class TransformerDecoderLayer(nn.Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation='relu'):
-        super(TransformerDecoderLayer, self).__init__()
-        self.d_model = d_model
-        self.nhead = nhead
-        self.dim_feedforward = dim_feedforward
+class TransformerEncoder(nn.Module):
+    def __init__(self,encoder_layer, num_layers, norm=None):
+        super(TransformerEncoder, self).__init__()
+        self.num_layers = num_layers
+        self.norm = norm
 
-        # Self Attention
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.layers = _get_clones(encoder_layer, num_layers)
 
-        self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+    def forward(self, src, mask=None, src_kp_mask=None):
+        attn_weights = []
+        output = src
+        for mod in self.layers:
+            output, attn_wts = mod(output, src_mask=mask,
+                                   src_kp_mask=src_kp_mask)
+            attn_weights.append(attn_wts.detach().cpu())
 
-        # Feedforward
-        self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
-        # Normalization
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.norm3 = nn.LayerNorm(d_model)
-        # Dropout
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
-        self.dropout3 = nn.Dropout(dropout)
-        # Activation
-        self.activation = _get_activation_fn(activation)
+        if self.norm is not None:
+            output = self.norm(output)
 
-    def forward(self, trg, memory, trg_mask=None, memory_mask=None,
-                trg_kp_mask=None, memory_kp_mask=None):
-        trg2, attn_weights1 = self.self_attn(trg, trg, trg, attn_mask=trg_mask,
-                                             key_padding_mask=trg_kp_mask)
-        trg = trg + self.dropout1(trg2)
-        trg = self.norm1(trg)
-        trg2, attn_weights2 = self.multihead_attn(trg, memory, memory,
-                                                  attn_mask=memory_mask,
-                                                  key_padding_mask=memory_kp_mask)
-        trg = trg + self.dropout2(trg2)
-        trg = self.norm2(trg)
-        trg2 = self.linear2(self.dropout(self.activation(self.linear1(trg))))
-        trg = trg + self.dropout3(trg2)
-        trg = self.norm3(trg)
+        return output, attn_weights
 
-        attn_weights = {'Sublayer1': attn_weights1.detach().cpu(),
-                        'Sublayer2': attn_weights2.detach().cpu()}
-        return trg, attn_weights
 
 
 class LanguageParser(nn.Module):
@@ -406,16 +273,15 @@ class LanguageParser(nn.Module):
         self.trg_embedding = nn.Embedding(trg_vocab_size, d_model)
         self.positional_encoding = PositionalEncoding(d_model, dropout)
 
-        # Encoder stuff should go here
-        # Define encoder and probably also define the rpn_tokens which should go in as parts
+        # Encoder
         self.encoder = lp_base(d_model)
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, self.activation)
         decoder_norm = nn.LayerNorm(d_model)
-        self.decoder = LPDecoder(decoder_layer, num_decoder_layers,
-                                 decoder_norm)
+        self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers,
+                                          decoder_norm)
 
         # Output
         self.linear = nn.Linear(d_model, trg_vocab_size)
@@ -427,19 +293,17 @@ class LanguageParser(nn.Module):
         self._reset_parameters()
 
     def _get_masks(self, src, trg):
-        sz = trg.shape[0]
+        sz = trg.shape[1]
         trg_mask = self._generate_square_subsequent_mask(sz)
         trg_mask = trg_mask.to(self.device)
-        src_kp_mask = (src == self.pad_idx).transpose(0, 1).to(self.device)
-        trg_kp_mask = (trg == self.pad_idx).transpose(0, 1).to(self.device)
+        src_kp_mask = (src == self.pad_idx).to(self.device)
+        trg_kp_mask = (trg == self.pad_idx).to(self.device)
         return trg_mask, src_kp_mask, trg_kp_mask
     
     def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf'))
-        mask = mask.masked_fill(mask == 1, float(0.0))
+        mask = torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
         return mask
-    
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -447,10 +311,12 @@ class LanguageParser(nn.Module):
 
     def forward(self, src, trg):
         """
-        args:
-            src: [src_seq_len, B]
-            trg: [trg_seq_len, B]
-
+        Args:
+            src: [B, src_seq_len]
+            trg: [B, trg_seq_len]
+        Returns:
+            out: [B, trg_seq_len, d]
+            attn_maps: list of all attn maps
         """
         src_mask = None
         # trg_mask: [trg_seq_len, trg_seq_len]
@@ -459,19 +325,20 @@ class LanguageParser(nn.Module):
         trg_mask, src_kp_mask, trg_kp_mask = self._get_masks(src, trg)
 
         # Input
-        # src: [src_seq_len, B, d]
-        # trg: [trg_seq_len, B, d]
+        # src: [B, src_seq_len, d]
+        # trg: [B, trg_seq_len, d]
         src = self.src_embedding(src)
         src = self.positional_encoding(src)
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
 
-        # Encoder stuff should go here!
-        parts, enc_attn_wts = self.encoder(src, src_kp_mask)
-        memory = parts.transpose(0, 1)
-        # Decide on what goes in the memory in decoder
+        # Encoder
+        memory, enc_attn_wts = self.encoder(src, src_kp_mask)
+
         memory_mask = None
         memory_kp_mask = None
+
+        # Decoder
         out, dec_attn_wts = self.decoder(trg, memory, trg_mask=trg_mask,
                                          memory_mask=memory_mask,
                                          trg_kp_mask=trg_kp_mask,
@@ -521,7 +388,7 @@ class Transformer(nn.Module):
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, self.activation)
         decoder_norm = nn.LayerNorm(d_model)
-        self.decoder = LPDecoder(decoder_layer, num_decoder_layers,
+        self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers,
                                           decoder_norm)
         # Output
         self.linear = nn.Linear(d_model,trg_vocab_size)
@@ -532,24 +399,20 @@ class Transformer(nn.Module):
         # Initialize
         self._reset_parameters()
     
-    def predict(self, src):
-        src = self.src_embedding(src)
-        src = self.positional_encoding(src)
-
 
     def forward(self,src,trg):
-        # src: [src_len, B]
-        # trg: [trg_len, B]
+        # src: [B, src_seq_len]
+        # trg: [B, trg_seq_len]
         # Masks
         src_mask = None
         trg_mask,src_kp_mask,trg_kp_mask = self._get_masks(src,trg)
 
         # Input
-        # src: [src_len, B, d_model]
+        # src: [B, src_seq_len, d_model]
         src = self.src_embedding(src)
         src = self.positional_encoding(src)
 
-        # trg: [trg_len, B, d_model]
+        # trg: [B, trg_seq_len, d_model]
         trg = self.trg_embedding(trg)
         trg = self.positional_encoding(trg)
 
@@ -575,13 +438,11 @@ class Transformer(nn.Module):
         return out, attn_wts
 
     def _get_masks(self,src,trg):
-        sz = trg.shape[0]
+        sz = trg.shape[1]
         trg_mask = self._generate_square_subsequent_mask(sz)
-        # trg_mask = torch.ones((sz, sz)) * np.random.choice([0, 1], size=(sz, sz), p=[1./3, 2./3]) * float('-inf')
-        # trg_mask[torch.isnan(trg_mask)] = 0
         trg_mask = trg_mask.to(self.device)
-        src_kp_mask = (src == self.pad_idx).transpose(0,1).to(self.device)
-        trg_kp_mask = (trg == self.pad_idx).transpose(0,1).to(self.device)
+        src_kp_mask = (src == self.pad_idx).to(self.device)
+        trg_kp_mask = (trg == self.pad_idx).to(self.device)
         return trg_mask,src_kp_mask,trg_kp_mask
 
     def _generate_square_subsequent_mask(self,sz):
@@ -593,123 +454,6 @@ class Transformer(nn.Module):
             if p.dim() > 1:
                 init.xavier_uniform_(p)
 
-
-class TransformerEncoder(nn.Module):
-    def __init__(self,encoder_layer, num_layers, norm=None):
-        super(TransformerEncoder, self).__init__()
-        self.num_layers = num_layers
-        self.norm = norm
-
-        self.layers = _get_clones(encoder_layer, num_layers)
-
-    def forward(self, src, mask=None, src_kp_mask=None):
-        attn_weights = []
-        output = src
-        for mod in self.layers:
-            output, attn_wts = mod(output, src_mask=mask,
-                                   src_kp_mask=src_kp_mask)
-            attn_weights.append(attn_wts.detach().cpu())
-
-        if self.norm is not None:
-            output = self.norm(output)
-
-        return output, attn_weights
-
-class TransformerEncoderLayer(nn.Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 activation='relu'):
-        super(TransformerEncoderLayer, self).__init__()
-        self.d_model = d_model
-        self.nhead = nhead
-        self.dim_feedforward = dim_feedforward
-
-        # Self attention
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # Feedforward
-        self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
-        # Normalization
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        # Dropout
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
-        # Activation
-        self.activation = _get_activation_fn(activation)
-
-    def forward(self, src, src_mask=None, src_kp_mask=None):
-        src2, attn_weights = self.self_attn(src, src, src, attn_mask=src_mask,
-                                key_padding_mask=src_kp_mask)
-        src = src + self.dropout1(src2)
-        src = self.norm1(src)
-        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-        src = src + self.dropout2(src2)
-        src = self.norm2(src)
-        return src, attn_weights
-
-class TokenEmbedding(nn.Module):
-    def __init__(self, vocab_size, emb_size):
-        super(TokenEmbedding, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_size)
-        self.emb_size = emb_size
-    
-    def forward(self, tokens):
-        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
-
-class TransformerDefault(nn.Module):
-    def __init__(self, num_encoder_layers, num_decoder_layers, emb_size, nhead, 
-                 src_vocab_size, trg_vocab_size, pad_idx, device, dim_feedforward = 512, dropout = 0.1):
-        super(TransformerDefault, self).__init__()
-        self.transformer = nn.Transformer(
-            d_model=emb_size,
-            nhead=nhead,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            device=device
-        )
-        self.linear = nn.Linear(emb_size, trg_vocab_size)
-        self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
-        self.trg_tok_emb = TokenEmbedding(trg_vocab_size, emb_size)
-        self.positional_encoding = PositionalEncoding(emb_size, dropout)
-        self.device = device
-        self.pad_idx = pad_idx
-
-        self._reset_parameters()
-    
-    def forward(self, src, trg):
-        src_mask, trg_mask, src_padding_mask, trg_padding_mask = self.create_mask(src, trg)
-
-        src_emb = self.positional_encoding(self.src_tok_emb(src))
-        trg_emb = self.positional_encoding(self.trg_tok_emb(trg))
-
-        outs = self.transformer(src_emb, trg_emb, src_mask, trg_mask, None, src_padding_mask, trg_padding_mask, src_padding_mask)
-
-        return self.linear(outs)
-
-    def generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        return mask
-    
-    def create_mask(self, src, trg):
-        src_seq_len = src.shape[0]
-        trg_seq_len = trg.shape[0]
-
-        trg_mask = self.generate_square_subsequent_mask(trg_seq_len)
-        src_mask = torch.zeros((src_seq_len, src_seq_len), device=self.device).type(torch.bool)
-
-        src_padding_mask = (src == self.pad_idx).transpose(0, 1).to(self.device)
-        trg_padding_mask = (trg == self.pad_idx).transpose(0, 1).to(self.device)
-
-        return src_mask, trg_mask, src_padding_mask, trg_padding_mask
-    
-    def _reset_parameters(self):
-        for p in self.parameters():
-            if p.dim() > 1:
-                init.xavier_uniform_(p)
 
 
 # TODO: figure out how to change num_parts without breaking

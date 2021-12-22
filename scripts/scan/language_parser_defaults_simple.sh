@@ -22,7 +22,7 @@ python main.py \
 --batch_size 32 \
 --num_epochs 100 \
 --model_type language_parser \
---d_model 6 \
+--d_model 16 \
 --num_decoder_layers 2 \
 --dim_feedforward 20 \
 --dropout 0.1 \

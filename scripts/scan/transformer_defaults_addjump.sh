@@ -22,11 +22,11 @@ python main.py \
 --batch_size 128 \
 --num_epochs 100 \
 --model_type transformer \
---d_model 400 \
+--d_model 128 \
 --nhead 8 \
 --num_encoder_layers 6 \
 --num_decoder_layers 6 \
---dim_feedforward 2048 \
+--dim_feedforward 512 \
 --dropout 0.1 \
 --learning_rate 0.00004 \
 --results_dir transformer \

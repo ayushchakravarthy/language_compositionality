@@ -63,17 +63,9 @@ def train(run, args):
             pad_idx,
             device
         )
-    elif args.model_type == "transformer_default":
-        model = TransformerDefault(
-            args.num_encoder_layers,
-            args.num_decoder_layers,
-            args.d_model,
-            args.nhead,
-            src_vocab_size,
-            trg_vocab_size,
-            pad_idx,
-            device,
-        )
+    else:
+        assert args.model_type not in ['transformer', 'language_parser']
+
     print(f"Model size: {sum(p.numel() for p in model.parameters())}")
     if args.load_weights_from is not None:
         model.load_state_dict(torch.load(args.load_weights_from))
@@ -104,12 +96,17 @@ def train(run, args):
         if args.dataset == 'cogs':
             if args.split == 'train':
                 for iter, batch in enumerate(train_data):
-                    trg_input = batch.trg[:-1, :]
-                    if args.model_type != "transformer_default":
-                        out, attn_wts = model(batch.src, trg_input)
-                    else:
-                        out = model(batch.src, trg_input)
-                    trg_out = batch.trg[1:, :]
+                    # transpose src and trg
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
+
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_out = trg[:, 1:]
+
+                    # get predictions
+                    out, attn_wts = model(src, trg_input)
+
                     loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
                     optimizer.zero_grad()
                     optimizer.backward(loss)
@@ -178,12 +175,17 @@ def train(run, args):
                                        args.checkpoint_path)
             elif args.split == 'train-100':
                 for iter, batch in enumerate(train_100_data):
-                    trg_input = batch.trg[:-1, :]
-                    if args.model_type != "transformer_default":
-                        out, attn_wts = model(batch.src, trg_input)
-                    else:
-                        out = model(batch.src, trg_input)
-                    trg_out = batch.trg[1:, :]
+                    # transpose src and trg
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
+
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_out = trg[:, 1:]
+
+                    # get predictions
+                    out, attn_wts = model(src, trg_input)
+
                     loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
                     optimizer.zero_grad()
                     loss.backward()
@@ -253,12 +255,16 @@ def train(run, args):
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
             for iter, batch in enumerate(train_data):
-                trg_input = batch.trg[:-1, :]
-                if args.model_type != "transformer_default":
-                    out, attn_wts = model(batch.src, trg_input)
-                else:
-                    out = model(batch.src, trg_input)
-                trg_out = batch.trg[1:, :]
+                # transpose src and trg
+                src = batch.src.transpose(0, 1)
+                trg = batch.trg.transpose(0, 1)
+
+                # augment trg
+                trg_input = trg[:, :-1]
+                trg_out = trg[:, 1:]
+
+                # pass through model and get predictions
+                out, attn_wts = model(src, trg_input)
                 loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
                 optimizer.zero_grad()
                 loss.backward()
