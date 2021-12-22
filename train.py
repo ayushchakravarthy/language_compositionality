@@ -80,7 +80,7 @@ def train(run, args):
 
     # Optimizer
     params = model.parameters()
-    optimizer = optim.Adam(params, lr=args.learning_rate)
+    optimizer = optim.AdamW(params, lr=args.learning_rate)
 
     # Setup things to record
     loss_data = []
@@ -148,7 +148,7 @@ def train(run, args):
                     gen_accs.append(gen_acc)
 
                 # Write stats file
-                results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
                 if not os.path.isdir(results_path):
                     os.mkdir(results_path)
                 stats = {'loss_data':loss_data,
@@ -161,10 +161,8 @@ def train(run, args):
                     json.dump(stats, f)
         
                 # Write attn weights to pickle file
-
-                if args.model_type != "transformer_default":
-                    with open(attn_file, 'wb') as f:
-                        pickle.dump(attn_wts, f)
+                with open(attn_file, 'wb') as f:
+                    pickle.dump(attn_wts, f)
 
                 # Save model weights
                 if run == 0: #first run only
@@ -228,7 +226,7 @@ def train(run, args):
 
 
                 # Write stats file
-                results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
                 if not os.path.isdir(results_path):
                     os.mkdir(results_path)
                 stats = {'loss_data':loss_data,
@@ -241,10 +239,8 @@ def train(run, args):
                     json.dump(stats, f)
         
                 # Write attn weights to pickle file
-
-                if args.model_type != "transformer_default":
-                    with open(attn_file, 'wb') as f:
-                        pickle.dump(attn_wts, f)
+                with open(attn_file, 'wb') as f:
+                    pickle.dump(attn_wts, f)
 
                 # Save model weights
                 if run == 0: #first run only
@@ -296,12 +292,12 @@ def train(run, args):
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                test_acc = test(test_data, model, pad_idx, device, args, loss_fn=True)
+                test_acc = test(test_data, model, pad_idx, device, args)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 
             # Write stats file
-            results_path = 'results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+            results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
             if not os.path.isdir(results_path):
                 os.mkdir(results_path)
             stats = {'loss_data':loss_data,
@@ -314,10 +310,8 @@ def train(run, args):
                 json.dump(stats, f)
         
             # Write attn weights to pickle file
-
-            if args.model_type != "transformer_default":
-                with open(attn_file, 'wb') as f:
-                    pickle.dump(attn_wts, f)
+            with open(attn_file, 'wb') as f:
+                pickle.dump(attn_wts, f)
 
             # Save model weights
             if run == 0: #first run only
