@@ -118,7 +118,8 @@ forward:
         x: [B, src_seq_len]
         m: [B, src_seq_len]
     Output:
-        (x emb_x): [B, src_seq_len, d]
+        (x emb_x): [B, src_seq_len] [B, src_seq_len]
+        emb_m: [B, src_seq_len, d]
 """
 class EmbeddingMultilinearSinusoidal(nn.Module):
   def __init__(self, d_vocab, d_x, d_r, dropout, max_length):
@@ -187,6 +188,22 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
                     mean=0,
                     std=1./math.sqrt(self.d_x))
 
+"""
+Transformer Encoder
+Idea: standard transformer encoder just with the modified attention for filler and role
+__init__:
+    Args:
+        n_L
+        #TODO: [EncoderLayer] params
+forward:
+    Args:
+        src_x: [B, src_seq_len, d_x]
+        src_m: [B, src_seq_len, d_x]
+        src_mask: [B, 1, attn_sz]
+    Output:
+        src_x: [B, src_seq_len, d_x]
+        src_m: [B, src_seq_len, d_x]
+"""
 class Encoder(nn.Module):
   def __init__(self, p):
     super().__init__()
@@ -206,6 +223,24 @@ class Encoder(nn.Module):
     return src_x, src_m
 
 
+"""
+Transformer Encoder Layer
+Idea: an implementation for one transformer decoder layer modified for the linguistic separation idea
+__init__:
+    Args:
+        d_x
+        #TODO: [Self-Attention] params
+        d_f
+        dropout
+forward:
+    Args:
+        src_x: [B, src_seq_len, d_x]
+        src_m: [B, src_seq_len, d_x]
+        src_mask: [B, src_seq_len]
+    Output:
+        src_x: [B, src_seq_len, d_x]
+        src_m: [B, src_seq_len, d_x]
+"""
 class EncoderLayer(nn.Module):
   def __init__(self, p):
     super().__init__()
@@ -251,7 +286,21 @@ class EncoderLayer(nn.Module):
 
     return src_x, src_m
 
-
+"""
+Transformer Decoder
+Idea: an implementation for transformer decoder modified for the linguistic separation idea
+__init__:
+    cat_xm
+    n_L
+    #TODO: [DecoderLayer] params
+    d_x
+    #TODO: maybe d_r
+forward:
+    trg_x, trg_m: [B, trg_seq_len, d_x]
+    src_x, src_m: [B, src_seq_len, d_x]
+    trg_mask: [B, src_seq_len]
+    src_mask: [B, trg_seq_len]
+"""
 class Decoder(nn.Module):
   def __init__(self, p):
     super().__init__()
@@ -279,6 +328,26 @@ class Decoder(nn.Module):
     return trg
 
 
+"""
+Transformer Decoder Layer
+Idea: an implementation for one transformer decoder layer modified for the linguistic separation idea
+__init__:
+    Args:
+        d_x
+        #TODO: [Self-Attention] params
+        d_f
+        dropout
+forward:
+    Args:
+        src_x: [B, src_seq_len, d_x]
+        src_m: [B, src_seq_len, d_x]
+        src_mask: [B, src_seq_len]
+    Output:
+        trg_x, trg_m: [B, trg_seq_len, d_x]
+        src_x, src_m: [B, src_seq_len, d_x]
+        trg_mask: [B, src_seq_len]
+        src_mask: [B, trg_seq_len]
+"""
 class DecoderLayer(nn.Module):
   def __init__(self, p):
     super().__init__()
@@ -339,7 +408,26 @@ class DecoderLayer(nn.Module):
 
     return trg_x, trg_m
 
-
+"""
+Self Attention Layer
+Idea: modified dual stream attention (refer slides)
+__init__:
+    Args:
+        d_x
+        n_I
+        use_xv
+        d_q
+        d_k
+        d_v
+        dropout
+forward:
+    Args:
+        query, key, value: [B, seq_len, d_x]
+        src_mask: [B, 1, 1, pad_seq]
+        trg_mask: [B, 1, pad_seq, past_seq] (?)
+    Out:
+        x, m: [B, seq_len, d_x]
+"""
 class SelfAttention(nn.Module):
   def __init__(self, p):
     super().__init__()
@@ -425,7 +513,19 @@ class SelfAttention(nn.Module):
                     mean=0,
                     std=1./math.sqrt(self.p.d_r))
 
-
+"""
+PositionwiseFeedforward
+__init__:
+    Args:
+        d_x
+        d_f
+        dropout
+forward:
+    Args:
+        x, m: [B, seq_len, d_x]
+    Output:
+        x, m: [B, seq_len, d_x]
+"""
 class PositionwiseFeedforward(nn.Module):
   def __init__(self, d_x, d_f, dropout):
     super().__init__()
@@ -464,6 +564,39 @@ class PositionwiseFeedforward(nn.Module):
     nn.init.xavier_uniform_(self.m_linear2.weight)
 
 
+"""
+Seq2Seq
+Idea: Sequence-to-Sequence Transformer Model
+__init__:
+    Args:
+        embedding
+        encoder
+        decoder
+        pad_idx
+        use_adversary
+        #TODO: [Adversary] hyperparameters
+        adv_theta
+        adv_lr
+make_masks:
+    Args:
+        src: [B, src_seq_len]
+        trg: [B, trg_seq_len]
+    Outputs:
+        src_mask: [B, 1, 1, pad_seq]
+        trg_mask: [B, 1, pad_seq, past_seq]
+forward:
+    Args:
+        src, src_ann: [B, src_seq_len]
+        trg, trg_ann: [B, trg_seq_len]
+    Outputs:
+        logits: [B, trg_seq_len, d]
+        #TODO: adv_stat
+train_adversary:
+    #TODO: complete this
+test_adversary:
+    #TODO: complete this
+
+"""
 class Seq2Seq(nn.Module):
   def __init__(self, p, embedding, encoder, decoder, pad_idx):
     super().__init__()
