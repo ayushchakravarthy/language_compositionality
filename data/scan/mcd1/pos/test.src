@@ -1,0 +1,1045 @@
+prim 
+prim around left after prim around right twice 
+prim around left thrice after prim around right twice 
+prim around left thrice after prim around left twice 
+prim around left thrice after prim around right twice 
+prim around left thrice after prim opposite left thrice 
+prim around left thrice after prim around right twice 
+prim around left thrice after prim left 
+prim around left thrice after prim opposite left thrice 
+prim around left thrice after prim opposite right thrice 
+prim around left thrice after turn around right twice 
+prim around left thrice after turn left 
+prim around left thrice after turn opposite left thrice 
+prim around left thrice after turn opposite right thrice 
+prim around left thrice after turn right 
+prim around left thrice after prim around right twice 
+prim around left thrice after prim opposite right thrice 
+prim around left thrice and prim opposite left thrice 
+prim around left thrice and prim opposite right thrice 
+prim around left thrice and prim right 
+prim around left thrice and prim left 
+prim around left thrice and prim opposite right thrice 
+prim around left thrice and prim around left twice 
+prim around left thrice and prim around right twice 
+prim around left thrice and prim left 
+prim around left thrice and prim opposite left thrice 
+prim around left thrice and prim opposite right thrice 
+prim around left thrice and prim right 
+prim around left thrice and turn around right twice 
+prim around left thrice and turn right 
+prim around left thrice and prim around left twice 
+prim around left thrice and prim around right twice 
+prim around left thrice and prim left 
+prim around left thrice and prim opposite left thrice 
+prim around left thrice and prim right 
+prim around left twice 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right twice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right twice 
+prim around left twice after prim around left twice 
+prim around left twice after prim left 
+prim around left twice after prim opposite right thrice 
+prim around left twice after turn around left twice 
+prim around left twice after turn opposite left thrice 
+prim around left twice after turn opposite right thrice 
+prim around left twice after turn right 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right twice 
+prim around left twice after prim left 
+prim around left twice and prim around left 
+prim around left twice and prim around left thrice 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right thrice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and prim left 
+prim around left twice and prim right 
+prim around left twice and turn opposite left thrice 
+prim around left twice and turn opposite right thrice 
+prim around left twice and turn right 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim right 
+prim around right after prim around right twice 
+prim around right and prim around right twice 
+prim around right thrice after prim around right twice 
+prim around right thrice after prim right 
+prim around right thrice after prim opposite left thrice 
+prim around right thrice after prim opposite right thrice 
+prim around right thrice after prim right 
+prim around right thrice after prim around left twice 
+prim around right thrice after turn around left twice 
+prim around right thrice after turn around right twice 
+prim around right thrice after turn left 
+prim around right thrice after turn opposite right thrice 
+prim around right thrice after prim around right twice 
+prim around right thrice after prim opposite left thrice 
+prim around right thrice after prim right 
+prim around right thrice and prim around right twice 
+prim around right thrice and prim opposite right thrice 
+prim around right thrice and prim right 
+prim around right thrice and prim around left twice 
+prim around right thrice and prim opposite left thrice 
+prim around right thrice and prim opposite right thrice 
+prim around right thrice and prim right 
+prim around right thrice and prim around right twice 
+prim around right thrice and turn around left twice 
+prim around right thrice and turn opposite left thrice 
+prim around right thrice and turn opposite right thrice 
+prim around right thrice and prim around left twice 
+prim around right thrice and prim around right twice 
+prim around right thrice and prim opposite left thrice 
+prim around right thrice and prim right 
+prim around right twice 
+prim around right twice after prim around left 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right 
+prim around right twice after prim around right thrice 
+prim around right twice after prim left 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right twice 
+prim around right twice after prim left 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim right 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right twice 
+prim around right twice after prim left 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after turn around left twice 
+prim around right twice after turn around right twice 
+prim around right twice after turn left 
+prim around right twice after turn right 
+prim around right twice after prim around left twice 
+prim around right twice after prim opposite right thrice 
+prim around right twice and prim around left 
+prim around right twice and prim around left twice 
+prim around right twice and prim around right twice 
+prim around right twice and prim left 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim right 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and turn around right twice 
+prim around right twice and turn left 
+prim around right twice and turn opposite right thrice 
+prim around right twice and turn right 
+prim around right twice and prim around left twice 
+prim around right twice and prim around right twice 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim left 
+prim left after prim around right thrice 
+prim left after prim around right twice 
+prim left after prim opposite left thrice 
+prim left after prim around left twice 
+prim left after prim opposite left thrice 
+prim left after prim opposite right thrice 
+prim left after prim right 
+prim left after prim around left twice 
+prim left after prim left 
+prim left after prim opposite left thrice 
+prim left after prim opposite right thrice 
+prim left after turn around left twice 
+prim left after turn around right twice 
+prim left after turn opposite left thrice 
+prim left after turn opposite right thrice 
+prim left after turn right 
+prim left after prim right 
+prim left and prim around left twice 
+prim left and prim opposite left thrice 
+prim left and prim opposite right thrice 
+prim left and prim around left twice 
+prim left and prim left 
+prim left and prim opposite left thrice 
+prim left and prim right 
+prim left and turn left 
+prim left and turn opposite left thrice 
+prim left and turn right 
+prim left and prim around left twice 
+prim left and prim left 
+prim left and prim opposite left thrice 
+prim left and prim right 
+prim opposite left thrice 
+prim opposite left thrice after prim around left thrice 
+prim opposite left thrice after prim around right thrice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice after turn around left twice 
+prim opposite left thrice after turn around right twice 
+prim opposite left thrice after turn left 
+prim opposite left thrice after turn opposite left thrice 
+prim opposite left thrice after turn opposite right thrice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right thrice 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and turn left 
+prim opposite left thrice and turn opposite left thrice 
+prim opposite left thrice and turn opposite right thrice 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right twice 
+prim opposite right thrice 
+prim opposite right thrice after prim around left thrice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after turn around right twice 
+prim opposite right thrice after turn left 
+prim opposite right thrice after turn opposite left thrice 
+prim opposite right thrice after turn opposite right thrice 
+prim opposite right thrice after turn right 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice and prim around left thrice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim left 
+prim opposite right thrice and turn around left twice 
+prim opposite right thrice and turn around right twice 
+prim opposite right thrice and turn left 
+prim opposite right thrice and turn opposite left thrice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim opposite right thrice 
+prim right 
+prim right after prim around left twice 
+prim right after prim opposite right thrice 
+prim right after prim right 
+prim right after prim opposite right thrice 
+prim right after prim around left twice 
+prim right after prim around right twice 
+prim right after prim left 
+prim right after prim opposite left thrice 
+prim right after prim opposite right thrice 
+prim right after turn opposite left thrice 
+prim right after turn right 
+prim right after prim around left twice 
+prim right after prim opposite right thrice 
+prim right and prim around right thrice 
+prim right and prim around right twice 
+prim right and prim left 
+prim right and prim around left twice 
+prim right and prim left 
+prim right and prim opposite right thrice 
+prim right and prim around right twice 
+prim right and prim opposite left thrice 
+prim right and turn around left twice 
+prim right and turn around right twice 
+prim right and turn right 
+prim right and prim around right twice 
+prim right and prim opposite left thrice 
+prim around left twice 
+prim around left twice after prim around left thrice 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right thrice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim right 
+prim around left twice after prim around left twice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim right 
+prim around left twice after prim opposite left thrice 
+prim around left twice after turn left 
+prim around left twice after turn opposite left thrice 
+prim around left twice after turn opposite right thrice 
+prim around left twice after prim around right twice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim right 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right thrice 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and prim around left twice 
+prim around left twice and prim left 
+prim around left twice and prim right 
+prim around left twice and prim around left twice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and prim right 
+prim around left twice and turn around left twice 
+prim around left twice and turn left 
+prim around left twice and prim left 
+prim around left twice and prim opposite right thrice 
+prim around right twice after prim left 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim right 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim right 
+prim around right twice after turn around left twice 
+prim around right twice after turn around right twice 
+prim around right twice after turn opposite left thrice 
+prim around right twice after prim around right twice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim right 
+prim around right twice and prim around left twice 
+prim around right twice and prim around right thrice 
+prim around right twice and prim around right twice 
+prim around right twice and prim right 
+prim around right twice and prim around left twice 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim left 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim right 
+prim around right twice and turn opposite left thrice 
+prim around right twice and turn right 
+prim around right twice and prim around right twice 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim right 
+prim left after prim around left thrice 
+prim left after prim around right twice 
+prim left after prim left 
+prim left after prim right 
+prim left after prim around right twice 
+prim left after prim left 
+prim left after prim opposite left thrice 
+prim left after prim opposite right thrice 
+prim left after prim around right twice 
+prim left after prim opposite left thrice 
+prim left after turn left 
+prim left after turn opposite left thrice 
+prim left after turn opposite right thrice 
+prim left after turn right 
+prim left after prim left 
+prim left and prim around left thrice 
+prim left and prim around right twice 
+prim left and prim left 
+prim left and prim opposite left thrice 
+prim left and prim right 
+prim left and prim around left twice 
+prim left and prim left 
+prim left and prim opposite right thrice 
+prim left and prim right 
+prim left and prim around left twice 
+prim left and prim left 
+prim left and prim opposite left thrice 
+prim left and turn left 
+prim left and turn opposite right thrice 
+prim left and turn right 
+prim left and prim around right twice 
+prim left and prim left 
+prim left and prim opposite right thrice 
+prim opposite left thrice after prim around left thrice 
+prim opposite left thrice after prim around left twice 
+prim opposite left thrice after prim around right thrice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after turn around left twice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice and prim around left thrice 
+prim opposite left thrice and prim around right thrice 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim right 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after turn around right twice 
+prim opposite right thrice after turn left 
+prim opposite right thrice after turn opposite right thrice 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice and prim around right thrice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and turn left 
+prim opposite right thrice and turn opposite left thrice 
+prim opposite right thrice and turn opposite right thrice 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim right 
+prim right 
+prim right after prim around left twice 
+prim right after prim around right twice 
+prim right after prim opposite right thrice 
+prim right after prim right 
+prim right after prim around left twice 
+prim right after prim left 
+prim right after prim opposite left thrice 
+prim right after prim around right twice 
+prim right after prim opposite right thrice 
+prim right after prim right 
+prim right after turn around right twice 
+prim right after turn left 
+prim right after turn right 
+prim right after prim around right twice 
+prim right after prim opposite left thrice 
+prim right after prim opposite right thrice 
+prim right after prim right 
+prim right and prim around left twice 
+prim right and prim opposite left thrice 
+prim right and prim around left twice 
+prim right and prim opposite left thrice 
+prim right and prim opposite right thrice 
+prim right and prim around right twice 
+prim right and turn around left twice 
+prim right and turn right 
+prim right and prim left 
+prim right and prim opposite right thrice 
+prim right and prim right 
+prim around left twice after prim around left thrice 
+prim around left twice after prim around right thrice 
+prim around left twice after prim around right twice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right twice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim right 
+prim around left twice after prim around left twice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim right 
+prim around left twice after turn around left twice 
+prim around left twice after turn left 
+prim around left twice after turn opposite right thrice 
+prim around left twice after turn right 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right twice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim right 
+prim around left twice and prim around left thrice 
+prim around left twice and prim around right thrice 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and prim right 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right twice 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and turn left 
+prim around left twice and turn opposite right thrice 
+prim around left twice and turn right 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around right twice after prim around left thrice 
+prim around right twice after prim around right thrice 
+prim around right twice after prim around right twice 
+prim around right twice after prim left 
+prim around right twice after prim around right twice 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim right 
+prim around right twice after prim around left twice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after turn around right twice 
+prim around right twice after turn left 
+prim around right twice after turn opposite left thrice 
+prim around right twice after turn right 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right twice 
+prim around right twice after prim opposite right thrice 
+prim around right twice and prim around right twice 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim around left twice 
+prim around right twice and prim around right twice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim right 
+prim around right twice and turn around left twice 
+prim around right twice and turn around right twice 
+prim around right twice and prim around left twice 
+prim around right twice and prim around right twice 
+prim around right twice and prim opposite right thrice 
+prim left after prim opposite left thrice 
+prim left after prim right 
+prim left after prim around left twice 
+prim left after prim opposite right thrice 
+prim left after prim around right twice 
+prim left after prim opposite left thrice 
+prim left after prim opposite right thrice 
+prim left after prim right 
+prim left after turn left 
+prim left after turn opposite right thrice 
+prim left after prim opposite right thrice 
+prim left after prim right 
+prim left and prim around left thrice 
+prim left and prim around right thrice 
+prim left and prim around right twice 
+prim left and prim opposite right thrice 
+prim left and prim around left twice 
+prim left and prim opposite right thrice 
+prim left and prim right 
+prim left and prim around right twice 
+prim left and prim opposite left thrice 
+prim left and turn around left twice 
+prim left and turn left 
+prim left and turn opposite left thrice 
+prim left and turn right 
+prim left and prim opposite right thrice 
+prim left and prim right 
+prim opposite left thrice after prim around right thrice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice after turn around right twice 
+prim opposite left thrice after turn right 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice and prim around left thrice 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right thrice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and turn around right twice 
+prim opposite left thrice and turn opposite right thrice 
+prim opposite left thrice and turn right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite right thrice after prim around left thrice 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after turn around left twice 
+prim opposite right thrice after turn right 
+prim opposite right thrice after prim around left twice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice and prim around left thrice 
+prim opposite right thrice and prim around right thrice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim right 
+prim opposite right thrice and turn left 
+prim opposite right thrice and turn opposite left thrice 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim right 
+prim right 
+prim right after prim around left twice 
+prim right after prim around right thrice 
+prim right after prim around right twice 
+prim right after prim opposite right thrice 
+prim right after prim opposite left thrice 
+prim right after prim right 
+prim right after prim around right twice 
+prim right after prim opposite left thrice 
+prim right after prim opposite right thrice 
+prim right after prim right 
+prim right after turn around right twice 
+prim right after turn left 
+prim right after turn opposite left thrice 
+prim right after prim around left twice 
+prim right after prim opposite left thrice 
+prim right after prim right 
+prim right and prim around left thrice 
+prim right and prim around left twice 
+prim right and prim around right thrice 
+prim right and prim around right twice 
+prim right and prim opposite left thrice 
+prim right and prim opposite right thrice 
+prim right and prim right 
+prim right and prim around right twice 
+prim right and prim opposite left thrice 
+prim right and prim right 
+prim right and prim left 
+prim right and prim right 
+prim right and turn around left twice 
+prim right and turn opposite left thrice 
+prim right and prim around right twice 
+prim right and prim opposite left thrice 
+prim right and prim right 
+turn around left twice after prim around left thrice 
+turn around left twice after prim around right twice 
+turn around left twice after prim left 
+turn around left twice after prim around left twice 
+turn around left twice after prim opposite left thrice 
+turn around left twice after prim opposite right thrice 
+turn around left twice after prim right 
+turn around left twice after prim around left twice 
+turn around left twice after prim right 
+turn around left twice after turn right 
+turn around left twice after prim around left twice 
+turn around left twice after prim around right twice 
+turn around left twice after prim opposite left thrice 
+turn around left twice after prim opposite right thrice 
+turn around left twice and prim around left thrice 
+turn around left twice and prim around left twice 
+turn around left twice and prim around right thrice 
+turn around left twice and prim opposite left thrice 
+turn around left twice and prim around left twice 
+turn around left twice and prim left 
+turn around left twice and prim opposite left thrice 
+turn around left twice and prim opposite right thrice 
+turn around left twice and prim around left twice 
+turn around left twice and prim around right twice 
+turn around left twice and prim left 
+turn around left twice and prim opposite left thrice 
+turn around left twice and turn around right twice 
+turn around left twice and turn opposite left thrice 
+turn around left twice and prim left 
+turn around left twice and prim right 
+turn around right twice 
+turn around right twice after prim around right twice 
+turn around right twice after prim opposite right thrice 
+turn around right twice after prim around left twice 
+turn around right twice after prim around right twice 
+turn around right twice after prim left 
+turn around right twice after prim opposite left thrice 
+turn around right twice after prim right 
+turn around right twice after prim around left twice 
+turn around right twice after prim left 
+turn around right twice after turn around right twice 
+turn around right twice after prim around left twice 
+turn around right twice after prim opposite left thrice 
+turn around right twice and prim around right thrice 
+turn around right twice and prim left 
+turn around right twice and prim opposite right thrice 
+turn around right twice and prim right 
+turn around right twice and prim around left twice 
+turn around right twice and prim opposite left thrice 
+turn around right twice and prim around left twice 
+turn around right twice and prim around right twice 
+turn around right twice and prim left 
+turn around right twice and prim opposite left thrice 
+turn around right twice and prim right 
+turn around right twice and turn opposite left thrice 
+turn around right twice and turn opposite right thrice 
+turn around right twice and turn right 
+turn around right twice and prim around left twice 
+turn around right twice and prim left 
+turn around right twice and prim opposite right thrice 
+turn around right twice and prim right 
+turn left 
+turn left after prim around left twice 
+turn left after prim around right twice 
+turn left after prim left 
+turn left after prim around left twice 
+turn left after prim around right twice 
+turn left after prim left 
+turn left after prim opposite left thrice 
+turn left after prim around left twice 
+turn left after prim around right twice 
+turn left after prim left 
+turn left after prim opposite right thrice 
+turn left after prim right 
+turn left after turn around left twice 
+turn left after turn left 
+turn left after turn opposite left thrice 
+turn left after turn opposite right thrice 
+turn left after turn right 
+turn left after prim around left twice 
+turn left after prim opposite left thrice 
+turn left after prim opposite right thrice 
+turn left and prim around left thrice 
+turn left and prim around left twice 
+turn left and prim around right thrice 
+turn left and prim opposite left thrice 
+turn left and prim around right twice 
+turn left and prim left 
+turn left and prim left 
+turn left and prim opposite left thrice 
+turn left and prim opposite right thrice 
+turn left and prim right 
+turn left and turn around left twice 
+turn left and turn left 
+turn left and prim around left twice 
+turn left and prim left 
+turn left and prim opposite left thrice 
+turn opposite left thrice 
+turn opposite left thrice after prim around left twice 
+turn opposite left thrice after prim around right twice 
+turn opposite left thrice after prim opposite right thrice 
+turn opposite left thrice after prim around right twice 
+turn opposite left thrice after prim left 
+turn opposite left thrice after prim opposite right thrice 
+turn opposite left thrice after prim right 
+turn opposite left thrice after prim around left twice 
+turn opposite left thrice after prim around right twice 
+turn opposite left thrice after prim left 
+turn opposite left thrice after prim opposite right thrice 
+turn opposite left thrice after turn around left twice 
+turn opposite left thrice after turn around right twice 
+turn opposite left thrice after turn left 
+turn opposite left thrice after turn opposite left thrice 
+turn opposite left thrice after turn opposite right thrice 
+turn opposite left thrice after prim around right twice 
+turn opposite left thrice after prim opposite left thrice 
+turn opposite left thrice after prim opposite right thrice 
+turn opposite left thrice after prim right 
+turn opposite left thrice and prim left 
+turn opposite left thrice and prim opposite left thrice 
+turn opposite left thrice and prim around left twice 
+turn opposite left thrice and prim around right twice 
+turn opposite left thrice and prim left 
+turn opposite left thrice and prim right 
+turn opposite left thrice and prim around right twice 
+turn opposite left thrice and prim left 
+turn opposite left thrice and turn around left twice 
+turn opposite left thrice and turn left 
+turn opposite left thrice and turn opposite right thrice 
+turn opposite left thrice and prim around right twice 
+turn opposite left thrice and prim left 
+turn opposite left thrice and prim opposite left thrice 
+turn opposite left thrice and prim opposite right thrice 
+turn opposite left thrice and prim right 
+turn opposite right thrice 
+turn opposite right thrice after prim around right thrice 
+turn opposite right thrice after prim left 
+turn opposite right thrice after prim around left twice 
+turn opposite right thrice after prim left 
+turn opposite right thrice after prim opposite left thrice 
+turn opposite right thrice after prim around left twice 
+turn opposite right thrice after turn around left twice 
+turn opposite right thrice after turn around right twice 
+turn opposite right thrice after turn opposite left thrice 
+turn opposite right thrice after turn opposite right thrice 
+turn opposite right thrice after prim left 
+turn opposite right thrice after prim opposite right thrice 
+turn opposite right thrice and prim around right thrice 
+turn opposite right thrice and prim around right twice 
+turn opposite right thrice and prim left 
+turn opposite right thrice and prim opposite left thrice 
+turn opposite right thrice and prim opposite right thrice 
+turn opposite right thrice and prim right 
+turn opposite right thrice and prim around left twice 
+turn opposite right thrice and prim opposite left thrice 
+turn opposite right thrice and prim around right twice 
+turn opposite right thrice and prim left 
+turn opposite right thrice and prim right 
+turn opposite right thrice and turn around right twice 
+turn opposite right thrice and turn opposite left thrice 
+turn opposite right thrice and turn opposite right thrice 
+turn opposite right thrice and turn right 
+turn opposite right thrice and prim opposite left thrice 
+turn opposite right thrice and prim opposite right thrice 
+turn opposite right thrice and prim right 
+turn right after prim around left thrice 
+turn right after prim around right twice 
+turn right after prim opposite left thrice 
+turn right after prim opposite right thrice 
+turn right after prim right 
+turn right after prim left 
+turn right after prim around left twice 
+turn right after prim around right twice 
+turn right after prim left 
+turn right after prim opposite left thrice 
+turn right after prim opposite right thrice 
+turn right after prim right 
+turn right after turn around left twice 
+turn right after turn opposite left thrice 
+turn right after turn right 
+turn right after prim around left twice 
+turn right after prim around right twice 
+turn right after prim opposite left thrice 
+turn right and prim around left twice 
+turn right and prim left 
+turn right and prim opposite right thrice 
+turn right and prim around left twice 
+turn right and prim opposite left thrice 
+turn right and prim around left twice 
+turn right and prim left 
+turn right and prim opposite left thrice 
+turn right and prim opposite right thrice 
+turn right and turn around left twice 
+turn right and turn around right twice 
+turn right and turn left 
+turn right and turn right 
+turn right and prim around left twice 
+turn right and prim around right twice 
+turn right and prim left 
+turn right and prim opposite right thrice 
+turn right and prim right 
+prim around left twice after prim around left thrice 
+prim around left twice after prim around left twice 
+prim around left twice after prim around right thrice 
+prim around left twice after prim around right twice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim left 
+prim around left twice after prim opposite left thrice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim around right twice 
+prim around left twice after turn left 
+prim around left twice after turn opposite left thrice 
+prim around left twice after turn opposite right thrice 
+prim around left twice after prim opposite right thrice 
+prim around left twice after prim right 
+prim around left twice and prim around left thrice 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right thrice 
+prim around left twice and prim around right twice 
+prim around left twice and prim right 
+prim around left twice and prim right 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right twice 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim opposite right thrice 
+prim around left twice and prim right 
+prim around left twice and turn around left twice 
+prim around left twice and turn left 
+prim around left twice and turn opposite left thrice 
+prim around left twice and turn opposite right thrice 
+prim around left twice and prim around left twice 
+prim around left twice and prim around right twice 
+prim around left twice and prim left 
+prim around left twice and prim opposite left thrice 
+prim around left twice and prim right 
+prim around right twice after prim around left thrice 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right thrice 
+prim around right twice after prim around right twice 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right twice 
+prim around right twice after prim left 
+prim around right twice after prim opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice after prim right 
+prim around right twice after prim around left twice 
+prim around right twice after prim around right twice 
+prim around right twice after prim left 
+prim around right twice after prim opposite left thrice 
+prim around right twice after turn left 
+prim around right twice after turn opposite left thrice 
+prim around right twice after prim opposite right thrice 
+prim around right twice and prim around right thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim right 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim opposite right thrice 
+prim around right twice and prim right 
+prim around right twice and turn around left twice 
+prim around right twice and turn around right twice 
+prim around right twice and turn opposite left thrice 
+prim around right twice and turn opposite right thrice 
+prim around right twice and turn right 
+prim around right twice and prim around right twice 
+prim around right twice and prim left 
+prim around right twice and prim opposite left thrice 
+prim around right twice and prim opposite right thrice 
+prim left after prim around left thrice 
+prim left after prim around right twice 
+prim left after prim around right twice 
+prim left after prim opposite right thrice 
+prim left after prim left 
+prim left after prim opposite left thrice 
+prim left after prim right 
+prim left after turn around left twice 
+prim left after turn around right twice 
+prim left after turn left 
+prim left after prim around right twice 
+prim left after prim opposite left thrice 
+prim left after prim opposite right thrice 
+prim left after prim right 
+prim left and prim around left thrice 
+prim left and prim left 
+prim left and prim opposite left thrice 
+prim left and prim right 
+prim left and prim around left twice 
+prim left and prim around right twice 
+prim left and prim opposite left thrice 
+prim left and prim opposite right thrice 
+prim left and prim around right twice 
+prim left and prim opposite left thrice 
+prim left and prim opposite right thrice 
+prim left and turn left 
+prim left and turn opposite right thrice 
+prim left and prim around right twice 
+prim left and prim left 
+prim opposite left thrice 
+prim opposite left thrice after prim around left thrice 
+prim opposite left thrice after prim around left twice 
+prim opposite left thrice after prim around right thrice 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim opposite left thrice 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after turn around left twice 
+prim opposite left thrice after turn around right twice 
+prim opposite left thrice after turn opposite left thrice 
+prim opposite left thrice after turn opposite right thrice 
+prim opposite left thrice after turn right 
+prim opposite left thrice after prim around right twice 
+prim opposite left thrice after prim left 
+prim opposite left thrice after prim opposite right thrice 
+prim opposite left thrice after prim right 
+prim opposite left thrice and prim around right twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and prim opposite left thrice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim opposite right thrice 
+prim opposite left thrice and prim right 
+prim opposite left thrice and prim around left twice 
+prim opposite left thrice and prim left 
+prim opposite left thrice and turn around left twice 
+prim opposite left thrice and prim left 
+prim opposite right thrice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim around right twice 
+prim opposite right thrice after prim left 
+prim opposite right thrice after prim opposite left thrice 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice after turn around left twice 
+prim opposite right thrice after turn around right twice 
+prim opposite right thrice after turn opposite left thrice 
+prim opposite right thrice after turn right 
+prim opposite right thrice after prim opposite right thrice 
+prim opposite right thrice after prim right 
+prim opposite right thrice and prim opposite left thrice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim right 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim right 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim right 
+prim opposite right thrice and turn around right twice 
+prim opposite right thrice and prim around left twice 
+prim opposite right thrice and prim around right twice 
+prim opposite right thrice and prim left 
+prim opposite right thrice and prim opposite right thrice 
+prim opposite right thrice and prim right 
+prim right 
+prim right after prim around right thrice 
+prim right after prim around left twice 
+prim right after prim around right twice 
+prim right after prim opposite left thrice 
+prim right after prim opposite right thrice 
+prim right after prim around left twice 
+prim right after prim opposite left thrice 
+prim right after prim right 
+prim right after turn left 
+prim right after turn opposite left thrice 
+prim right after turn opposite right thrice 
+prim right after turn right 
+prim right after prim around right twice 
+prim right after prim opposite left thrice 
+prim right after prim right 
+prim right and prim around left thrice 
+prim right and prim around right twice 
+prim right and prim around right twice 
+prim right and prim around right twice 
+prim right and prim left 
+prim right and turn around left twice 
+prim right and turn around right twice 
+prim right and prim around left twice 
+prim right and prim around right twice 
+prim right and prim left 
