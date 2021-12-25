@@ -164,25 +164,6 @@ class LPEncoder(nn.Module):
     def _init_weights(self):
         init.kaiming_uniform_(self.rpn_tokens, a=math.sqrt(5))
         init.trunc_normal_(self.rpn_tokens, std=.02)
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                init.trunc_normal_(m.weight, std=.02)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
-                if not torch.sum(m.weight.data == 0).item() == m.num_features:  # zero gamma
-                    m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                init.trunc_normal_(m.weight, std=.02)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.LayerNorm):
-                nn.init.constant_(m.bias, 0)
-                nn.init.constant_(m.weight, 1.0)
-
     
     def forward(self, x, mask=None):
         """

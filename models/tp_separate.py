@@ -12,48 +12,71 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
-from tpx.utils.lib import HyperParams
 
-def build_transformer(params, pad_idx):
-  p = HyperParams()
-  p.d_vocab = params.input_dim
-  p.d_pos = 200 # max input size
+def build_tp_sep_transformer(params, pad_idx):
+  d_vocab = params.d_vocab
+  d_pos = 200 # max input size
 
-  p.d_f = params.filter
+  d_f = params.filter
 
-  p.n_L = params.n_layers
-  p.n_I = params.n_heads
+  n_L = params.n_layers
+  n_I = params.n_heads
 
-  p.d_x = params.hidden  # token embedding dimension
-  p.d_p = params.hidden  # position embedding dimension
+  d_x = params.hidden  # token embedding dimension
+  d_p = params.hidden  # position embedding dimension
 
-  p.d_v = p.d_x // p.n_I  # value dimension
-  p.d_r = p.d_x // p.n_I  # role dimension
+  d_v = d_x // n_I  # value dimension
+  d_r = d_x // n_I  # role dimension
 
-  p.d_k = p.d_x // p.n_I  # key dimension
-  p.d_q = p.d_x // p.n_I  # query dimension
+  d_k = d_x // n_I  # key dimension
+  d_q = d_x // n_I  # query dimension
 
-  p.dropout = params.dropout
+  dropout = params.dropout
 
-  p.cat_xm = params.cat_xm # concatenate x and m for output
-  p.use_xv = params.use_xv # use separate value vectors for x (rather than just keys)
-  p.use_adversary = params.use_adversary # use "lexical adversary"
-  p.adv_lambda = params.adv_lambda # scale of gradients from adversary
-  p.adv_theta = params.adv_theta # minimum loss to backpropagate to adversary
-  p.adv_lr = params.adv_lr # learning rate for adversary
+  cat_xm = params.cat_xm # concatenate x and m for output
+  use_xv = params.use_xv # use separate value vectors for x (rather than just keys)
+  use_adversary = params.use_adversary # use "lexical adversary"
+  adv_lambda = params.adv_lambda # scale of gradients from adversary
+  adv_theta = params.adv_theta # minimum loss to backpropagate to adversary
+  adv_lr = params.adv_lr # learning rate for adversary
 
-  embedding = EmbeddingMultilinearSinusoidal(d_vocab=params.input_dim,
-                                             d_x=p.d_x,
-                                             d_r=p.d_r,
-                                             dropout=params.dropout,
+  embedding = EmbeddingMultilinearSinusoidal(d_vocab=d_vocab,
+                                             d_x=d_x,
+                                             d_r=d_r,
+                                             dropout=dropout,
                                              max_length=200)
-  encoder = Encoder(p=p)
-  decoder = Decoder(p=p)
-  model = Seq2Seq(p=p,
-                  embedding=embedding,
+  encoder = Encoder(
+      d_x,
+      d_q,
+      d_k,
+      d_v,
+      d_f,
+      n_I,
+      n_L,
+      use_xv,
+      dropout
+  )
+  decoder = Decoder(
+      d_x,
+      d_q,
+      d_k,
+      d_v,
+      d_f,
+      use_xv,
+      cat_xm,
+      n_I,
+      n_L,
+      dropout
+  )
+  model = Seq2Seq(embedding=embedding,
                   encoder=encoder,
                   decoder=decoder,
-                  pad_idx=pad_idx)
+                  pad_idx=pad_idx,
+                  use_adversary=use_adversary,
+                  d_x=d_x,
+                  d_vocab=d_vocab,
+                  adv_lambda=adv_lambda,
+                  adv_theta=adv_theta)
 
   return model
 
@@ -88,11 +111,11 @@ forward:
 
 """
 class Adversary(nn.Module):
-  def __init__(self, p):
+  def __init__(self, d_x, d_vocab, adv_lambda):
     super(Adversary, self).__init__()
-    self.d_x = p.d_x
-    self.d_vocab = p.d_vocab
-    self.lam = p.adv_lambda
+    self.d_x = d_x
+    self.d_vocab = d_vocab
+    self.lam = adv_lambda
 
     self.linear = nn.Linear(self.d_x, self.d_vocab, bias=False)
 
@@ -193,8 +216,15 @@ Transformer Encoder
 Idea: standard transformer encoder just with the modified attention for filler and role
 __init__:
     Args:
+        d_x
+        d_q
+        d_k
+        d_v
+        d_f
+        n_I
         n_L
-        #TODO: [EncoderLayer] params
+        use_xv
+        dropout
 forward:
     Args:
         src_x: [B, src_seq_len, d_x]
@@ -205,12 +235,30 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class Encoder(nn.Module):
-  def __init__(self, p):
+  def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, use_xv, dropout):
     super().__init__()
 
-    layers = [EncoderLayer(p)]
-    for _ in range(p.n_L - 1):
-      layers.append(EncoderLayer(p))
+    layers = [EncoderLayer(
+        d_x,
+        d_q,
+        d_k,
+        d_v,
+        d_f,
+        n_I,
+        use_xv,
+        dropout
+    )]
+    for _ in range(n_L - 1):
+      layers.append(EncoderLayer(
+        d_x,
+        d_q,
+        d_k,
+        d_v,
+        d_f,
+        n_I,
+        use_xv,
+        dropout
+      ))
     self.layers = nn.ModuleList(layers)
 
   def forward(self, src_x, src_m, src_mask):
@@ -229,7 +277,11 @@ Idea: an implementation for one transformer decoder layer modified for the lingu
 __init__:
     Args:
         d_x
-        #TODO: [Self-Attention] params
+        d_q
+        d_k
+        d_v
+        n_I
+        use_xv
         d_f
         dropout
 forward:
@@ -242,26 +294,26 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class EncoderLayer(nn.Module):
-  def __init__(self, p):
+  def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, use_xv, dropout):
     super().__init__()
 
     # sublayer 1
-    self.x_layernorm1 = nn.LayerNorm(p.d_x)
-    self.m_layernorm1 = nn.LayerNorm(p.d_x)
-    self.MHA = SelfAttention(p)
-    self.x_dropout1 = nn.Dropout(p.dropout)
-    self.m_dropout1 = nn.Dropout(p.dropout)
+    self.x_layernorm1 = nn.LayerNorm(d_x)
+    self.m_layernorm1 = nn.LayerNorm(d_x)
+    self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, dropout)
+    self.x_dropout1 = nn.Dropout(dropout)
+    self.m_dropout1 = nn.Dropout(dropout)
     # sublayer 2
-    self.x_layernorm2 = nn.LayerNorm(p.d_x)
-    self.m_layernorm2 = nn.LayerNorm(p.d_x)
-    self.densefilter = PositionwiseFeedforward(d_x=p.d_x,
-                                               d_f=p.d_f,
-                                               dropout=p.dropout)
-    self.x_dropout2 = nn.Dropout(p.dropout)
-    self.m_dropout2 = nn.Dropout(p.dropout)
+    self.x_layernorm2 = nn.LayerNorm(d_x)
+    self.m_layernorm2 = nn.LayerNorm(d_x)
+    self.densefilter = PositionwiseFeedforward(d_x=d_x,
+                                               d_f=d_f,
+                                               dropout=dropout)
+    self.x_dropout2 = nn.Dropout(dropout)
+    self.m_dropout2 = nn.Dropout(dropout)
     # output
-    self.x_layernorm3 = nn.LayerNorm(p.d_x)
-    self.m_layernorm3 = nn.LayerNorm(p.d_x)
+    self.x_layernorm3 = nn.LayerNorm(d_x)
+    self.m_layernorm3 = nn.LayerNorm(d_x)
 
   def forward(self, src_x, src_m, src_mask):
     # src_x = [batch_size, src_seq_size, p.d_x]
@@ -290,25 +342,56 @@ class EncoderLayer(nn.Module):
 Transformer Decoder
 Idea: an implementation for transformer decoder modified for the linguistic separation idea
 __init__:
-    cat_xm
-    n_L
-    #TODO: [DecoderLayer] params
-    d_x
+    Args:
+        d_x
+        d_q
+        d_k
+        d_v
+        d_f
+        use_xv
+        cat_xm
+        n_I
+        n_L
+        dropout
     #TODO: maybe d_r
 forward:
-    trg_x, trg_m: [B, trg_seq_len, d_x]
-    src_x, src_m: [B, src_seq_len, d_x]
-    trg_mask: [B, src_seq_len]
-    src_mask: [B, trg_seq_len]
+    Args:
+        trg_x, trg_m: [B, trg_seq_len, d_x]
+        src_x, src_m: [B, src_seq_len, d_x]
+        trg_mask: [B, src_seq_len]
+        src_mask: [B, trg_seq_len]
+    Output:
+        trg: [B, trg_seq_len, d_x]
 """
 class Decoder(nn.Module):
-  def __init__(self, p):
+  def __init__(
+      self,
+      d_x,
+      d_q,
+      d_k,
+      d_v,
+      d_f,
+      use_xv,
+      cat_xm,
+      n_I,
+      n_L,
+      dropout
+  ):
     super().__init__()
-    self.cat_xm = p.cat_xm
+    self.cat_xm = cat_xm
 
-    self.layers = nn.ModuleList([DecoderLayer(p) for _ in range(p.n_L)])
+    self.layers = nn.ModuleList([DecoderLayer(
+        d_x,
+        d_q,
+        d_k,
+        d_v,
+        d_f,
+        use_xv,
+        n_I,
+        dropout
+    ) for _ in range(n_L)])
     if self.cat_xm:
-      self.out = nn.Linear(2*p.d_x, p.d_x)
+      self.out = nn.Linear(2*d_x, d_x)
 
   def forward(self, trg_x, trg_m, src_x, src_m, trg_mask, src_mask):
     # trg_x, trg_m = [batch_size, trg_seq_size, d_x]
@@ -334,8 +417,12 @@ Idea: an implementation for one transformer decoder layer modified for the lingu
 __init__:
     Args:
         d_x
-        #TODO: [Self-Attention] params
+        d_q
+        d_k
+        d_v
         d_f
+        use_xv
+        n_I
         dropout
 forward:
     Args:
@@ -349,32 +436,32 @@ forward:
         src_mask: [B, trg_seq_len]
 """
 class DecoderLayer(nn.Module):
-  def __init__(self, p):
+  def __init__(self, d_x, d_q, d_k, d_v, d_f, use_xv, n_I, dropout):
     super().__init__()
     # sublayer 1
-    self.x_layernorm1 = nn.LayerNorm(p.d_x)
-    self.m_layernorm1 = nn.LayerNorm(p.d_x)
-    self.selfAttn = SelfAttention(p)
-    self.x_dropout1 = nn.Dropout(p.dropout)
-    self.m_dropout1 = nn.Dropout(p.dropout)
+    self.x_layernorm1 = nn.LayerNorm(d_x)
+    self.m_layernorm1 = nn.LayerNorm(d_x)
+    self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, d_v, n_I, use_xv, dropout)
+    self.x_dropout1 = nn.Dropout(dropout)
+    self.m_dropout1 = nn.Dropout(dropout)
     # sublayer 2
-    self.x_layernorm2 = nn.LayerNorm(p.d_x)
-    self.m_layernorm2 = nn.LayerNorm(p.d_x)
-    self.encAttn = SelfAttention(p)
-    self.x_dropout2 = nn.Dropout(p.dropout)
-    self.m_dropout2 = nn.Dropout(p.dropout)
+    self.x_layernorm2 = nn.LayerNorm(d_x)
+    self.m_layernorm2 = nn.LayerNorm(d_x)
+    self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, d_v, n_I, use_xv, dropout)
+    self.x_dropout2 = nn.Dropout(dropout)
+    self.m_dropout2 = nn.Dropout(dropout)
     # sublayer 3
-    self.x_layernorm3 = nn.LayerNorm(p.d_x)
-    self.m_layernorm3 = nn.LayerNorm(p.d_x)
-    self.densefilter = PositionwiseFeedforward(d_x=p.d_x,
-                                               d_f=p.d_f,
-                                               dropout=p.dropout)
-    self.x_dropout3 = nn.Dropout(p.dropout)
-    self.m_dropout3 = nn.Dropout(p.dropout)
+    self.x_layernorm3 = nn.LayerNorm(d_x)
+    self.m_layernorm3 = nn.LayerNorm(d_x)
+    self.densefilter = PositionwiseFeedforward(d_x=d_x,
+                                               d_f=d_f,
+                                               dropout=dropout)
+    self.x_dropout3 = nn.Dropout(dropout)
+    self.m_dropout3 = nn.Dropout(dropout)
 
     # output
-    self.x_layernorm4 = nn.LayerNorm(p.d_x)
-    self.m_layernorm4 = nn.LayerNorm(p.d_x)
+    self.x_layernorm4 = nn.LayerNorm(d_x)
+    self.m_layernorm4 = nn.LayerNorm(d_x)
 
 
   def forward(self, trg_x, trg_m, src_x, src_m, trg_mask, src_mask):
@@ -414,11 +501,11 @@ Idea: modified dual stream attention (refer slides)
 __init__:
     Args:
         d_x
-        n_I
-        use_xv
         d_q
         d_k
         d_v
+        n_I
+        use_xv
         dropout
 forward:
     Args:
@@ -429,24 +516,26 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-  def __init__(self, p):
+  def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, dropout):
     super().__init__()
-    self.p = p
-    self.d_x = p.d_x
-    self.n_I = p.n_I
-    self.use_xv = p.use_xv # use separate value vectors for x (rather than keys)
+    self.d_x = d_x
+    self.d_q = d_q
+    self.d_k = d_k
+    self.d_v = d_v
+    self.n_I = n_I
+    self.use_xv = use_xv # use separate value vectors for x (rather than keys)
 
-    self.W_q = nn.Linear(self.d_x, p.d_q * p.n_I)
-    self.W_k = nn.Linear(self.d_x, p.d_k * p.n_I)
-    self.W_v = nn.Linear(self.d_x, p.d_v * p.n_I)
+    self.W_q = nn.Linear(self.d_x, d_q * n_I)
+    self.W_k = nn.Linear(self.d_x, d_k * n_I)
+    self.W_v = nn.Linear(self.d_x, d_v * n_I)
     if self.use_xv:
-      self.W_xv = nn.Linear(self.d_x, p.d_v * p.n_I)
+      self.W_xv = nn.Linear(self.d_x, d_v * n_I)
 
-    self.W_xo = nn.Linear(p.d_v * p.n_I, p.d_x)
-    self.W_mo = nn.Linear(p.d_k * p.n_I, p.d_x)
+    self.W_xo = nn.Linear(d_v * n_I, d_x)
+    self.W_mo = nn.Linear(d_k * n_I, d_x)
 
-    self.dropout = nn.Dropout(p.dropout)
-    self.dot_scale = torch.FloatTensor([math.sqrt(p.d_k)])
+    self.dropout = nn.Dropout(dropout)
+    self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
     self.mul_scale = torch.FloatTensor([1./math.sqrt(math.sqrt(2) - 1)])
 
 
@@ -463,9 +552,9 @@ class SelfAttention(nn.Module):
     V = self.W_v(value)
     # Q, K, V = [batch_size, seq_len, n_heads * d_*]
 
-    Q = Q.view(bsz, -1, self.n_I, self.p.d_q).permute(0,2,1,3)
-    K = K.view(bsz, -1, self.n_I, self.p.d_k).permute(0,2,1,3)
-    V = V.view(bsz, -1, self.n_I, self.p.d_v).permute(0,2,1,3)
+    Q = Q.view(bsz, -1, self.n_I, self.d_q).permute(0,2,1,3)
+    K = K.view(bsz, -1, self.n_I, self.d_k).permute(0,2,1,3)
+    V = V.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
     # Q, K, V = [batch_size, n_heads, seq_size, d_*]
 
     dot = torch.einsum('bhid,bhjd->bhij', Q, K) / self.dot_scale.to(key.device)
@@ -481,7 +570,7 @@ class SelfAttention(nn.Module):
 
     if self.use_xv:
       xV = self.W_xv(key)
-      xV = xV.view(bsz, -1, self.n_I, self.p.d_v).permute(0,2,1,3)
+      xV = xV.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
       K = xV # use xV rather than K for values associated with x
       # K = [batch_size, n_heads, seq_size, d_v]
 
@@ -493,8 +582,8 @@ class SelfAttention(nn.Module):
     v_bar = v_bar.permute(0,2,1,3).contiguous()
     # k_bar, v_bar = [batch_size, seq_size, n_heads, d_*]
 
-    k_bar = k_bar.view(bsz, -1, self.n_I * self.p.d_v)
-    v_bar = v_bar.view(bsz, -1, self.n_I * self.p.d_v)
+    k_bar = k_bar.view(bsz, -1, self.n_I * self.d_v)
+    v_bar = v_bar.view(bsz, -1, self.n_I * self.d_v)
     # k_bar, v_bar = [batch_size, src_seq_size, n_heads * d_v]
 
     x = self.W_xo(k_bar)
@@ -511,7 +600,7 @@ class SelfAttention(nn.Module):
 
     nn.init.normal_(self.W_r.weight,
                     mean=0,
-                    std=1./math.sqrt(self.p.d_r))
+                    std=1./math.sqrt(self.d_r))
 
 """
 PositionwiseFeedforward
@@ -574,7 +663,9 @@ __init__:
         decoder
         pad_idx
         use_adversary
-        #TODO: [Adversary] hyperparameters
+        d_x
+        d_vocab
+        adv_lambda
         adv_theta
         adv_lr
 make_masks:
@@ -598,20 +689,27 @@ test_adversary:
 
 """
 class Seq2Seq(nn.Module):
-  def __init__(self, p, embedding, encoder, decoder, pad_idx):
+  def __init__(self, embedding, encoder, decoder, pad_idx, 
+               use_adversary, d_x, d_vocab, adv_lambda, adv_theta,
+               adv_lr):
     super().__init__()
 
     self.embedding = embedding
     self.encoder = encoder
     self.decoder = decoder
     self.pad_idx = pad_idx
+    self.use_adversary = use_adversary
 
     # Adversary (optional)
-    if p.use_adversary:
-      self.adversary = Adversary(p)
+    if self.use_adversary:
+      self.adversary = Adversary(
+          d_x,
+          d_vocab,
+          adv_lambda
+      )
       self.adv_loss = nn.CrossEntropyLoss(ignore_index=pad_idx)
-      self.adv_theta = p.adv_theta
-      self.adv_optimizer = torch.optim.Adam(self.adversary.parameters(), p.adv_lr)
+      self.adv_theta = adv_theta
+      self.adv_optimizer = torch.optim.Adam(self.adversary.parameters(), adv_lr)
 
 
   def make_masks(self, src, trg):
@@ -623,21 +721,10 @@ class Seq2Seq(nn.Module):
     # trg_mask = [batch_size, 1, trg_seq_size, 1]
     trg_len = trg.shape[1]
 
-    if getattr(torch, "bool") and torch.__version__ != "1.2.0" and torch.device('cuda') == trg.device:
-      # bug in torch 1.3.0 needs this workaround
-      trg_sub_mask = torch.tril(torch.ones((trg_len, trg_len), dtype=torch.bool, device=trg.device))
-      trg_mask = trg_pad_mask & trg_sub_mask
-    else:
-      # this is the correct code (torch 1.2.0 and torch 1.4.0?)
-      # workarond for torch.tril() not currently supporting bool types
-      trg_sub_mask = torch.tril(
+    trg_sub_mask = torch.tril(
         torch.ones((trg_len, trg_len), dtype=torch.uint8, device=trg.device))
 
-    # for running on philly
-    if True:  # os.getenv("PHILLY_JOB_ID"):
-      trg_mask = trg_pad_mask & trg_sub_mask.bool()
-    else:
-      trg_mask = trg_pad_mask & trg_sub_mask  #.bool()
+    trg_mask = trg_pad_mask & trg_sub_mask.bool()
 
     # src_mask = [batch_size, 1, 1, pad_seq]
     # trg_mask = [batch_size, 1, pad_seq, past_seq]

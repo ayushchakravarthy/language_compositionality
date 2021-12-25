@@ -10,6 +10,7 @@ import torch.optim as optim
 
 from data import build_cogs, build_scan
 from models.models import *
+from models.tp_separate import build_tp_sep_transformer
 from test import test
 
 
@@ -20,11 +21,19 @@ def train(run, args):
 
     # Data 
     if args.dataset == 'scan':
-        SRC, TRG, train_data, dev_data, test_data = build_scan(
-            args.split,
-            args.batch_size,
-            device=device
-        )
+        if args.pos:
+            SRC, TRG, train_data, dev_data, test_data, SRC_pos, TRG_pos, train_data_pos, dev_data_pos, test_data_pos = build_scan(
+                args.split,
+                args.batch_size,
+                use_pos=args.pos,
+                device=device
+            )
+        else:
+            SRC, TRG, train_data, dev_data, test_data = build_scan(
+                args.split,
+                args.batch_size,
+                device=device
+            )
     elif args.dataset == 'cogs':
         SRC, TRG, train_data, train_100_data, dev_data, test_data, gen_data =  build_cogs(
             args.batch_size,
@@ -63,8 +72,11 @@ def train(run, args):
             pad_idx,
             device
         )
+    elif args.model_type == 'sep-transformer':
+        assert args.pos == True
+        model = build_tp_sep_transformer(args, pad_idx)
     else:
-        assert args.model_type not in ['transformer', 'language_parser']
+        assert args.model_type not in ['transformer', 'language_parser', 'sep-transformer']
 
     print(f"Model size: {sum(p.numel() for p in model.parameters())}")
     if args.load_weights_from is not None:

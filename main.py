@@ -10,7 +10,6 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(random_seed)
 
 from train import train
-from plot import plot
 
 parser = argparse.ArgumentParser()
 
