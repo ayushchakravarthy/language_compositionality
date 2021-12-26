@@ -236,13 +236,13 @@ class TransformerEncoder(nn.Module):
 
 class LanguageParser(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
-                 num_decoder_layers, dim_feedforward, dropout, pad_idx, device):
+                 n_layers, dim_feedforward, dropout, pad_idx, device):
         super(LanguageParser, self).__init__()
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
         self.nhead = nhead
-        self.num_decoder_layers = num_decoder_layers
+        self.num_decoder_layers = n_layers
         self.dim_feedforward = dim_feedforward
         self.dropout = dropout
         self.pad_idx = pad_idx
@@ -261,7 +261,7 @@ class LanguageParser(nn.Module):
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, self.activation)
         decoder_norm = nn.LayerNorm(d_model)
-        self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers,
+        self.decoder = TransformerDecoder(decoder_layer, self.num_decoder_layers,
                                           decoder_norm)
 
         # Output
@@ -340,15 +340,15 @@ class LanguageParser(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
-                 num_encoder_layers, num_decoder_layers, dim_feedforward,
+                 n_layers,  dim_feedforward,
                  dropout, pad_idx, device):
         super(Transformer,self).__init__()
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
         self.nhead = nhead
-        self.num_encoder_layers = num_encoder_layers
-        self.num_decoder_layers = num_decoder_layers
+        self.num_encoder_layers = n_layers
+        self.num_decoder_layers = n_layers
         self.dim_feedforward = dim_feedforward
         self.dropout = dropout
         self.pad_idx = pad_idx
@@ -363,13 +363,13 @@ class Transformer(nn.Module):
         encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, self.activation)
         encoder_norm = nn.LayerNorm(d_model)
-        self.encoder = TransformerEncoder(encoder_layer, num_encoder_layers,
+        self.encoder = TransformerEncoder(encoder_layer, self.num_encoder_layers,
                                           encoder_norm)
         # Decoder
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, self.activation)
         decoder_norm = nn.LayerNorm(d_model)
-        self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers,
+        self.decoder = TransformerDecoder(decoder_layer, self.num_decoder_layers,
                                           decoder_norm)
         # Output
         self.linear = nn.Linear(d_model,trg_vocab_size)
@@ -442,3 +442,5 @@ def lp_base(dim):
     model_cfg = dict(dim=dim, num_layers=[2, 2, 4, 4], num_heads=[8, 8, 8, 8],
                      num_parts=[64, 64, 64, 64], ffn_exp=3, dropout=0.1)
     return LPEncoder(**model_cfg)
+
+# TODO: add Seq2Seq here?

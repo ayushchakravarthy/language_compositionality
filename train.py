@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from data import build_cogs, build_scan
-from models.models import *
+from models.models import LanguageParser, Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
 
@@ -28,6 +28,12 @@ def train(run, args):
                 use_pos=args.pos,
                 device=device
             )
+            # pos vocab
+            src_pos_vocab_size = len(SRC_pos.vocab.stoi)
+            trg_pos_vocab_size = len(TRG_pos.vocab.stoi)
+            pos_pad_idx = SRC_pos.vocab[SRC_pos.pad_token]
+            assert TRG_pos.vocab[TRG_pos.pad_token] == pos_pad_idx
+            assert SRC.vocab[SRC.pad_token] == pos_pad_idx
         else:
             SRC, TRG, train_data, dev_data, test_data = build_scan(
                 args.split,
@@ -53,7 +59,7 @@ def train(run, args):
             trg_vocab_size,
             args.d_model,
             args.nhead,
-            args.num_decoder_layers,
+            args.n_layers,
             args.dim_feedforward,
             args.dropout,
             pad_idx,
@@ -65,8 +71,7 @@ def train(run, args):
             trg_vocab_size,
             args.d_model,
             args.nhead,
-            args.num_encoder_layers,
-            args.num_decoder_layers,
+            args.n_layers,
             args.dim_feedforward,
             args.dropout,
             pad_idx,
@@ -262,31 +267,63 @@ def train(run, args):
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
-            for iter, batch in enumerate(train_data):
-                # transpose src and trg
-                src = batch.src.transpose(0, 1)
-                trg = batch.trg.transpose(0, 1)
+            if args.pos and args.model == 'sep-transformer':
+                for ((iter, batch), (_, batch_pos)) in zip(enumerate(train_data), enumerate(train_data_pos)):
+                    # transpose src and trg
+                    src = batch_pos.src.transpose(0, 1)
+                    trg = batch_pos.trg.transpose(0, 1)
+                    src_ann = batch.src.transpose(0, 1)
+                    trg_ann = batch.trg.transpose(0, 1)
 
-                # augment trg
-                trg_input = trg[:, :-1]
-                trg_out = trg[:, 1:]
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_ann_input = trg_ann[:, :-1]
+                    trg_out = trg[:, 1:]
+                    trg_ann_out = trg_ann[:, 1:] # not going to be used for supervision
 
-                # pass through model and get predictions
-                out, attn_wts = model(src, trg_input)
-                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                # Record Loss
-                if iter % args.record_loss_every == 0:
-                    loss_datapoint = loss.data.item()
-                    print(
-                        'Run:', run,
-                        'Epochs: ', epoch,
-                        'Iter: ', iter,
-                        'Loss: ', loss_datapoint
-                    )
-                    loss_data.append(loss_datapoint)
+                    out, adv_stat = model(src, trg_input, src_ann, trg_ann_input)
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_ann_out.reshape(-1))
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    # Record Loss
+                    if iter % args.record_loss_every == 0:
+                        loss_datapoint = loss.data.item()
+                        print(
+                            'Run:', run,
+                            'Epochs: ', epoch,
+                            'Iter: ', iter,
+                            'Loss: ', loss_datapoint,
+                            'Adversary Loss', adv_stat
+                        )
+                        loss_data.append(loss_datapoint)
+
+            else:
+                for iter, batch in enumerate(train_data):
+                    # transpose src and trg
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
+
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_out = trg[:, 1:]
+
+                    # pass through model and get predictions
+                    out, attn_wts = model(src, trg_input)
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    # Record Loss
+                    if iter % args.record_loss_every == 0:
+                        loss_datapoint = loss.data.item()
+                        print(
+                            'Run:', run,
+                            'Epochs: ', epoch,
+                            'Iter: ', iter,
+                            'Loss: ', loss_datapoint
+                        )
+                        loss_data.append(loss_datapoint)
 
             # Checkpoint
             if epoch % args.checkpoint_every == 0:

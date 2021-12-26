@@ -20,10 +20,10 @@ def build_tp_sep_transformer(params, pad_idx):
   d_f = params.filter
 
   n_L = params.n_layers
-  n_I = params.n_heads
+  n_I = params.nhead
 
-  d_x = params.hidden  # token embedding dimension
-  d_p = params.hidden  # position embedding dimension
+  d_x = params.d_model  # token embedding dimension
+  d_p = params.d_model  # position embedding dimension
 
   d_v = d_x // n_I  # value dimension
   d_r = d_x // n_I  # role dimension
@@ -80,7 +80,7 @@ def build_tp_sep_transformer(params, pad_idx):
 
   return model
 
-# Hand-coded backprop with learning rate = scale (?)
+# Scale adversary gradient
 class GradientReverse(Function):
   scale = 1.0
   @staticmethod
@@ -168,7 +168,7 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
     # pe = [1, seq_len, d_p]
 
     # x -> r
-    self.linear = nn.Linear(d_x, d_r)
+    self.linear = nn.Linear(d_x, d_x)
     self.mul_scale = torch.FloatTensor([1. / math.sqrt(math.sqrt(2) - 1)])
 
     self.reset_parameters()

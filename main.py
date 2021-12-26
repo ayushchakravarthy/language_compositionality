@@ -28,19 +28,31 @@ parser.add_argument('--num_epochs', type=int, default=100,
                     help='Number of training epochs')
 
 # Model
+# Transformer Arguments
 parser.add_argument('--model_type',
                     default='language_parser', help='Type of seq2seq model to use')
 parser.add_argument('--d_model', type=int, default=12,
                     help="Dimension of inputs/outputs in transformer")
 parser.add_argument('--nhead', type=int, default=2,
                     help='Number of heads in transformer with multihead attention')
-parser.add_argument('--ffn_exp', type=int, default=3)
-parser.add_argument('--num_parts', type=int, default=16)
-parser.add_argument('--num_encoder_layers', type=int, default=2)
-parser.add_argument('--num_decoder_layers', type=int, default=2)
+parser.add_argument('--n_layers', type=int, default=2)
 parser.add_argument('--dim_feedforward', type=int, default=20)
 parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--load_weights_from', default=None, required=False)
+
+# TP-Separated Transformer Arguments
+parser.add_argument('--cat_xm', action='store_true',
+                    help='concatenate X and M for output')
+parser.add_argument('--use_xv', action='store_true',
+                    help='use separate value vectors for x (rather than just keys)')
+parser.add_argument('--use_adversary', action='store_true',
+                    help='use lexical adversary')
+parser.add_argument('--adv_lambda', type=float, default=0.01,
+                    help='scale of gradients from adversary')
+parser.add_argument('--adv_theta', type=float, default=0.01,
+                    help='minimum loss to backpropogate to adversary')
+parser.add_argument('--adv_lr', type=float, default=0.01,
+                    help='learning rate for adversary')
 
 # Optimization
 parser.add_argument('--learning_rate', type=float, default=0.001)

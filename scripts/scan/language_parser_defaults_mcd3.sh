@@ -26,7 +26,7 @@ python main.py \
 --nhead 2 \
 --ffn_exp 3 \
 --num_parts 16 \
---num_decoder_layers 2 \
+--n_layers 2 \
 --dim_feedforward 20 \
 --dropout 0.1 \
 --learning_rate 0.001 \

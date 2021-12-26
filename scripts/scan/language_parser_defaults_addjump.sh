@@ -25,7 +25,7 @@ python main.py \
 --d_model 128 \
 --nhead 8 \
 --dim_feedforward 1024 \
---num_decoder_layers 6 \
+--n_layers 6 \
 --dropout 0.1 \
 --learning_rate 0.00004 \
 --results_dir language_parser \
