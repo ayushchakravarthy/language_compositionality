@@ -12,9 +12,8 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
-
-def build_tp_sep_transformer(params, pad_idx):
-  d_vocab = params.d_vocab
+def build_tp_sep_transformer(params, pad_idx, vocab_size):
+  d_vocab = vocab_size
   d_pos = 200 # max input size
 
   d_f = params.filter
@@ -76,7 +75,8 @@ def build_tp_sep_transformer(params, pad_idx):
                   d_x=d_x,
                   d_vocab=d_vocab,
                   adv_lambda=adv_lambda,
-                  adv_theta=adv_theta)
+                  adv_theta=adv_theta,
+                  adv_lr=params.adv_lr)
 
   return model
 
@@ -441,13 +441,13 @@ class DecoderLayer(nn.Module):
     # sublayer 1
     self.x_layernorm1 = nn.LayerNorm(d_x)
     self.m_layernorm1 = nn.LayerNorm(d_x)
-    self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, d_v, n_I, use_xv, dropout)
+    self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, dropout)
     self.x_dropout1 = nn.Dropout(dropout)
     self.m_dropout1 = nn.Dropout(dropout)
     # sublayer 2
     self.x_layernorm2 = nn.LayerNorm(d_x)
     self.m_layernorm2 = nn.LayerNorm(d_x)
-    self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, d_v, n_I, use_xv, dropout)
+    self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, dropout)
     self.x_dropout2 = nn.Dropout(dropout)
     self.m_dropout2 = nn.Dropout(dropout)
     # sublayer 3
@@ -459,7 +459,20 @@ class DecoderLayer(nn.Module):
     self.x_dropout3 = nn.Dropout(dropout)
     self.m_dropout3 = nn.Dropout(dropout)
 
-    # output
+    # output(base) a@a:~/Projects/CCN/glom/language_parser$ 
+
+
+
+
+
+
+
+
+
+
+
+
+
     self.x_layernorm4 = nn.LayerNorm(d_x)
     self.m_layernorm4 = nn.LayerNorm(d_x)
 
@@ -699,6 +712,7 @@ class Seq2Seq(nn.Module):
     self.decoder = decoder
     self.pad_idx = pad_idx
     self.use_adversary = use_adversary
+    self.softmax = nn.LogSoftmax(dim=-1)
 
     # Adversary (optional)
     if self.use_adversary:
@@ -757,7 +771,7 @@ class Seq2Seq(nn.Module):
     # src_x, src_m = [batch_size, src_seq_size, p.d_x]
     # trg_x, trg_m = [batch_size, trg_seq_size, p.d_x]
 
-    if self.adversary:
+    if self.use_adversary:
       if src_emb_x.requires_grad: # no adversary training during evaluation
         adv_stat = self.train_adversary(src_emb_x, trg_emb_x, src, trg)
       else:
@@ -773,6 +787,8 @@ class Seq2Seq(nn.Module):
 
     logits = self.embedding.transpose_forward(trg)
     # logits = [batch_size, trg_seq_size, d_vocab]
+
+    logits = self.softmax(logits)
 
     return logits, adv_stat
 

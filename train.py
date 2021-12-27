@@ -79,7 +79,7 @@ def train(run, args):
         )
     elif args.model_type == 'sep-transformer':
         assert args.pos == True
-        model = build_tp_sep_transformer(args, pad_idx)
+        model = build_tp_sep_transformer(args, pad_idx, src_vocab_size)
     else:
         assert args.model_type not in ['transformer', 'language_parser', 'sep-transformer']
 
@@ -267,13 +267,13 @@ def train(run, args):
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
-            if args.pos and args.model == 'sep-transformer':
+            if args.pos and args.model_type == 'sep-transformer':
                 for ((iter, batch), (_, batch_pos)) in zip(enumerate(train_data), enumerate(train_data_pos)):
                     # transpose src and trg
-                    src = batch_pos.src.transpose(0, 1)
-                    trg = batch_pos.trg.transpose(0, 1)
-                    src_ann = batch.src.transpose(0, 1)
-                    trg_ann = batch.trg.transpose(0, 1)
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
+                    src_ann = batch_pos.src.transpose(0, 1)
+                    trg_ann = batch_pos.trg.transpose(0, 1)
 
                     # augment trg
                     trg_input = trg[:, :-1]
@@ -282,7 +282,8 @@ def train(run, args):
                     trg_ann_out = trg_ann[:, 1:] # not going to be used for supervision
 
                     out, adv_stat = model(src, trg_input, src_ann, trg_ann_input)
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_ann_out.reshape(-1))
+                    attn_wts = None
+                    loss = loss_fn(out.view(-1, src_vocab_size), trg_out.reshape(-1))
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
@@ -329,19 +330,28 @@ def train(run, args):
             if epoch % args.checkpoint_every == 0:
                 # Checkpoint on train data
                 print("Checking training accuracy...")
-                train_acc = test(train_data, model, pad_idx, device, args)
+                if args.pos:
+                    train_acc = test(zip(enumerate(train_data), enumerate(train_data_pos)), model, pad_idx, device, args)
+                else:
+                    train_acc = test(train_data, model, pad_idx, device, args)
                 print("Training accuracy is ", train_acc)
                 train_accs.append(train_acc)
 
                 # Checkpoint on development data
                 print("Checking development accuracy...")
-                dev_acc = test(dev_data, model, pad_idx, device, args)
+                if args.pos:
+                    dev_acc = test(zip(enumerate(dev_data), enumerate(dev_data_pos)), model, pad_idx, device, args)
+                else:
+                    dev_acc = test(dev_data, model, pad_idx, device, args)
                 print("Development accuracy is ", dev_acc)
                 dev_accs.append(dev_acc)
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                test_acc = test(test_data, model, pad_idx, device, args)
+                if args.pos:
+                    test_acc = test(zip(enumerate(test_data), enumerate(test_data_pos)), model, pad_idx, device, args)
+                else:
+                    test_acc = test(test_data, model, pad_idx, device, args)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 

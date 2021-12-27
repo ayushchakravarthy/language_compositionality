@@ -24,6 +24,7 @@ def build_scan(split, batch_size, use_pos=False, device='cpu'):
         path = 'data/scan/mcd3'
     else:
         assert split not in ['simple', 'addjump', 'mcd1', 'mcd2', 'mcd3'], "Unknown split"
+        exit()
 
     train_path = os.path.join(path, 'train')
     dev_path = os.path.join(path, 'dev')
