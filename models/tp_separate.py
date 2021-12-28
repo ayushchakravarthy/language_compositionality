@@ -76,7 +76,7 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                   d_vocab=d_vocab,
                   adv_lambda=adv_lambda,
                   adv_theta=adv_theta,
-                  adv_lr=params.adv_lr)
+                  adv_lr=adv_lr)
 
   return model
 
@@ -459,20 +459,6 @@ class DecoderLayer(nn.Module):
     self.x_dropout3 = nn.Dropout(dropout)
     self.m_dropout3 = nn.Dropout(dropout)
 
-    # output(base) a@a:~/Projects/CCN/glom/language_parser$ 
-
-
-
-
-
-
-
-
-
-
-
-
-
     self.x_layernorm4 = nn.LayerNorm(d_x)
     self.m_layernorm4 = nn.LayerNorm(d_x)
 
@@ -580,6 +566,16 @@ class SelfAttention(nn.Module):
 
     attention = self.dropout(F.softmax(dot, dim=-1))
     # attention = [batch_size, n_heads, seq_size, seq_size]
+
+    # uniform dist
+    # rand = (torch.rand(attention.shape) / 5) - 0.1
+    
+    # normal dist
+    rand = torch.normal(0.0, 0.1, attention.shape, device=key.device)
+
+    attention += rand
+
+    attention += rand
 
     if self.use_xv:
       xV = self.W_xv(key)
