@@ -571,11 +571,9 @@ class SelfAttention(nn.Module):
     # rand = (torch.rand(attention.shape) / 5) - 0.1
     
     # normal dist
-    rand = torch.normal(0.0, 0.1, attention.shape, device=key.device)
+    # rand = torch.normal(0.0, 0.1, attention.shape, device=key.device)
 
-    attention += rand
-
-    attention += rand
+    # attention += rand
 
     if self.use_xv:
       xV = self.W_xv(key)
