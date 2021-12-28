@@ -1,6 +1,7 @@
 import argparse
 import torch
 import numpy as np
+import time 
 
 random_seed = 3417
 torch.manual_seed(random_seed)
@@ -77,6 +78,9 @@ def main(args):
         train(run, args)
 
 if __name__ == "__main__":
+    s = time.time()
     args = parser.parse_args()
     print(args)
     main(args)
+    e = time.time() - s
+    print(e)
