@@ -439,7 +439,7 @@ class Transformer(nn.Module):
 
 # TODO: figure out how to change num_parts without breaking
 def lp_base(dim):
-    model_cfg = dict(dim=dim, num_layers=[2, 2, 4, 4], num_heads=[8, 8, 8, 8],
+    model_cfg = dict(dim=dim, num_layers=[4, 4, 6, 6], num_heads=[8, 8, 8, 8],
                      num_parts=[64, 64, 64, 64], ffn_exp=3, dropout=0.1)
     return LPEncoder(**model_cfg)
 

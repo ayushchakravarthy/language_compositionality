@@ -1,28 +1,13 @@
 #!/usr/bin/env bash
-#SBATCH -p localLimited
-#SBATCH -A ucdavis
-#SBATCH --mem=1G
-#SBATCH --time=200:00:00
-#SBATCH --gres=gpu:1
-#SBATCH -c 2
-#SBATCH --output=logs/scan/language_parser_def_add_jump.txt
-
-export HOME=`getent passwd $USER | cut -d':' -f6`
-export PYTHONUNBUFFERED=1
-echo Running on $HOSTNAME
-
-source /home/akchak/.bashrc
-source /home/tqhe/.bashrc
-conda activate lp
 
 python main.py \
 --dataset scan \
 --split addjump \
 --num_runs 1 \
---batch_size 128 \
---num_epochs 100 \
+--batch_size 256 \
+--num_epochs 150 \
 --model_type language_parser \
---d_model 128 \
+--d_model 256 \
 --nhead 8 \
 --dim_feedforward 1024 \
 --n_layers 6 \
