@@ -26,15 +26,15 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(div_term / d_model)
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         self.shape = [0]
         self.register_buffer('pe', pe)
 
     def _get_pe(self, x):
-        return self.pe[:x.size(0), :]
+        return self.pe[:, :x.size(1)]
 
     def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
+        x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
 class LPBlock(nn.Module):
