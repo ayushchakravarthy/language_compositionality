@@ -1,19 +1,4 @@
 #!/usr/bin/env bash
-#SBATCH -p localLimited
-#SBATCH -A ucdavis
-#SBATCH --mem=1G
-#SBATCH --time=200:00:00
-#SBATCH --gres=gpu:1
-#SBATCH -c 2
-#SBATCH --output=logs/scan/transformer_def_add_jump.txt
-
-export HOME=`getent passwd $USER | cut -d':' -f6`
-export PYTHONUNBUFFERED=1
-echo Running on $HOSTNAME
-
-source /home/akchak/.bashrc
-source /home/tqhe/.bashrc
-conda activate lp
 
 python main.py \
 --dataset scan \
@@ -22,12 +7,12 @@ python main.py \
 --batch_size 256 \
 --num_epochs 100 \
 --model_type transformer \
---d_model 512 \
+--d_model 400 \
 --nhead 8 \
 --n_layers 6 \
---dim_feedforward 2048 \
+--dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.00004 \
+--learning_rate 0.0005 \
 --results_dir transformer \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \

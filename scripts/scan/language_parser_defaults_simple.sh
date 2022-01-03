@@ -1,19 +1,4 @@
 #!/usr/bin/env bash
-#SBATCH -p localLimited
-#SBATCH -A ucdavis
-#SBATCH --mem=1G
-#SBATCH --time=100:00:00
-#SBATCH --gres=gpu:1
-#SBATCH -c 2
-#SBATCH --output=logs/scan/language_parser_def_simple.txt
-
-export HOME=`getent passwd $USER | cut -d':' -f6`
-export PYTHONUNBUFFERED=1
-echo Running on $HOSTNAME
-
-source /home/akchak/.bashrc
-source /home/tqhe/.bashrc
-conda activate lp
 
 python main.py \
 --dataset scan \
@@ -23,10 +8,11 @@ python main.py \
 --num_epochs 150 \
 --model_type language_parser \
 --d_model 256 \
---n_layers 6 \
---dim_feedforward 1024 \
+--nhead 8 \
+--n_layers 2 \
+--dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.00004 \
+--learning_rate 0.0001 \
 --results_dir language_parser \
 --out_data_file train_defaults_simple \
 --out_attn_wts train_defaults_simple_attn_maps \

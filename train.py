@@ -97,7 +97,7 @@ def train(run, args):
 
     # Optimizer
     params = model.parameters()
-    optimizer = optim.AdamW(params, lr=args.learning_rate)
+    optimizer = optim.Adam(params, lr=args.learning_rate)
 
     # Setup things to record
     loss_data = []

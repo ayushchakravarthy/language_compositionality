@@ -7,12 +7,12 @@ python main.py \
 --batch_size 256 \
 --num_epochs 100 \
 --model_type transformer \
---d_model 512 \
+--d_model 256 \
 --nhead 8 \
---n_layers 6 \
---dim_feedforward 2048 \
+--n_layers 4 \
+--dim_feedforward 256 \
 --dropout 0.1 \
---learning_rate 0.00004 \
+--learning_rate 0.0005 \
 --results_dir transformer \
 --out_data_file train_defaults_mcd3 \
 --out_attn_wts train_defaults_mcd3_attn_maps \
