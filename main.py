@@ -46,7 +46,6 @@ parser.add_argument('--cat_xm', action='store_true',
                     help='concatenate X and M for output')
 parser.add_argument('--use_xv', action='store_true',
                     help='use separate value vectors for x (rather than just keys)')
-parser.add_argument('--filter', type=float, default=256)
 parser.add_argument('--use_adversary', action='store_true',
                     help='use lexical adversary')
 parser.add_argument('--adv_lambda', type=float, default=0.01,

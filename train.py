@@ -281,8 +281,7 @@ def train(run, args):
                     trg_out = trg[:, 1:]
                     trg_ann_out = trg_ann[:, 1:] # not going to be used for supervision
 
-                    out, adv_stat = model(src, trg_input, src_ann, trg_ann_input)
-                    attn_wts = None
+                    out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                     loss = loss_fn(out.view(-1, src_vocab_size), trg_out.reshape(-1))
                     optimizer.zero_grad()
                     loss.backward()

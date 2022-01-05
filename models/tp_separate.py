@@ -16,7 +16,7 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
   d_vocab = vocab_size
   d_pos = 200 # max input size
 
-  d_f = params.filter
+  d_f = params.dim_feedforward
 
   n_L = params.n_layers
   n_I = params.nhead
@@ -265,10 +265,12 @@ class Encoder(nn.Module):
     # src_x = [batch_size, src_seq_len, p.d_x]
     # src_m = [batch_size, src_seq_len, p.d_x]
     # src_mask = [batch_size, 1, attn_size]
+    encoder_attn_maps = []
     for layer in self.layers:
-      src_x, src_m = layer(src_x, src_m, src_mask)
+      src_x, src_m, attn = layer(src_x, src_m, src_mask)
+      encoder_attn_maps.append(attn)
 
-    return src_x, src_m
+    return src_x, src_m, encoder_attn_maps
 
 
 """
@@ -323,7 +325,7 @@ class EncoderLayer(nn.Module):
     # sublayer 1
     x = self.x_layernorm1(src_x)
     m = self.m_layernorm1(src_m)
-    x, m = self.MHA(x, x, m, src_mask)
+    x, m, attn = self.MHA(x, x, m, src_mask)
     x = self.x_dropout1(x)
     m = self.m_dropout1(m)
     src_x = self.x_layernorm2(src_x + x)
@@ -336,7 +338,7 @@ class EncoderLayer(nn.Module):
     src_x = self.x_layernorm3(src_x + x)
     src_m = self.m_layernorm3(src_m + m)
 
-    return src_x, src_m
+    return src_x, src_m, attn
 
 """
 Transformer Decoder
@@ -398,9 +400,15 @@ class Decoder(nn.Module):
     # src_x, src_m = [batch_size, src_seq_size, d_x]
     # trg_mask = [batch_size, trg_seq_size]
     # src_mask = [batch_size, src_seq_size]
+    decoder_attn_maps = []
 
     for layer in self.layers:
-      trg_x, trg_m = layer(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
+      trg_x, trg_m, attn_self, attn_enc = layer(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
+      attns = {
+          'Sublayer1': attn_self,
+          'Sublayer2': attn_enc
+      }
+      decoder_attn_maps.append(attns)
 
     if self.cat_xm:
       trg = torch.cat([trg_x,trg_m], dim=2)
@@ -408,7 +416,7 @@ class Decoder(nn.Module):
     else:
       trg = trg_m
 
-    return trg
+    return trg, decoder_attn_maps
 
 
 """
@@ -472,14 +480,14 @@ class DecoderLayer(nn.Module):
     # self attention
     x = self.x_layernorm1(trg_x)
     m = self.m_layernorm1(trg_m)
-    x, m = self.selfAttn(x, x, m, trg_mask)
+    x, m, attn_self = self.selfAttn(x, x, m, trg_mask)
     x = self.x_dropout1(x)
     m = self.m_dropout1(m)
     trg_x = self.x_layernorm2(trg_x + x)
     trg_m = self.m_layernorm2(trg_m + m)
 
     # encoder attention
-    x, m = self.encAttn(x, src_x, src_m, src_mask)
+    x, m, attn_enc = self.encAttn(x, src_x, src_m, src_mask)
     x = self.x_dropout2(x)
     m = self.m_dropout2(m)
     trg_x = self.x_layernorm3(trg_x + x)
@@ -492,7 +500,7 @@ class DecoderLayer(nn.Module):
     trg_x = self.x_layernorm4(trg_x + x)
     trg_m = self.m_layernorm4(trg_m + m)
 
-    return trg_x, trg_m
+    return trg_x, trg_m, attn_self, attn_enc
 
 """
 Self Attention Layer
@@ -597,7 +605,7 @@ class SelfAttention(nn.Module):
     m = self.W_mo(v_bar)
     # x, m = [batch_size, seq_size, d_x]
 
-    return x, m
+    return x, m, attention
 
   def reset_parameters(self):
     nn.init.xavier_uniform_(self.W_q.weight)
@@ -773,10 +781,10 @@ class Seq2Seq(nn.Module):
     else:
       adv_stat = None
 
-    src_x, src_m = self.encoder(src_x, src_m, src_mask)
+    src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
     # src_x, src_m = [batch_size, src_seq_size, p.d_x]
 
-    trg = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
+    trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
     # trg = [batch_size, trg_seq_size, d_x]
 
     logits = self.embedding.transpose_forward(trg)
@@ -784,7 +792,12 @@ class Seq2Seq(nn.Module):
 
     logits = self.softmax(logits)
 
-    return logits, adv_stat
+    attn_maps = {
+        'Encoder': encoder_attn_maps,
+        'Decoder': decoder_attn_maps
+    }
+
+    return logits, adv_stat, attn_maps
 
   def train_adversary(self, src_emb_x, trg_emb_x, src, trg):
     # src_emb_x = [batch_size, src_seq_len, d_x]

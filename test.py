@@ -20,7 +20,7 @@ def test(data, model, pad_idx, device, args):
                 trg_out = trg[:, 1:]
                 trg_ann_out = trg_ann[:, 1:]
 
-                out, adv_stat = model(src, trg_input, src_ann, trg_ann_input)
+                out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
 
                 preds = torch.argmax(out, axis=2)
 
