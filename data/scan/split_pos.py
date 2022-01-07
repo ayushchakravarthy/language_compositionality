@@ -28,10 +28,10 @@ def split_pos():
                 print(f'{split}/pos: folder already created')
 
             
-            with open(f'./{split}/pos/{dataset}.src', 'w') as q:
+            with open(f'./{split}/{dataset}.src.pos', 'w') as q:
                 for a in src:
                     q.write(a)
-            with open(f'./{split}/pos/{dataset}.trg', 'w') as z:
+            with open(f'./{split}/{dataset}.trg.pos', 'w') as z:
                 for b in trg:
                     z.write(b)
             print(f'{split}, {dataset} pos data written')
