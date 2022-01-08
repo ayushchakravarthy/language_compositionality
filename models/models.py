@@ -255,7 +255,7 @@ class LanguageParser(nn.Module):
         self.positional_encoding = PositionalEncoding(d_model, dropout)
 
         # Encoder
-        self.encoder = lp_base(d_model, n_layers)
+        self.encoder = lp_base(d_model, n_layers, nhead)
 
         # Decoder 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -438,13 +438,15 @@ class Transformer(nn.Module):
 
 
 # TODO: figure out how to change num_parts without breaking
-def lp_base(dim, n_layers):
+def lp_base(dim, n_layers, n_heads):
     if n_layers == 1:
         n_l = [1, 1, 1, 1]
     else:
         n_l = [1, 1, n_layers, n_layers]
-    model_cfg = dict(dim=dim, num_layers=n_l, num_heads=[8, 8, 8, 8],
+    
+    n_h = [n_heads, n_heads, n_heads, n_heads]
+
+    model_cfg = dict(dim=dim, num_layers=n_l, num_heads=n_h,
                      num_parts=[128, 128, 128, 128], ffn_exp=3, dropout=0.1)
     return LPEncoder(**model_cfg)
 
-# TODO: add Seq2Seq here?

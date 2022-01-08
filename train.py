@@ -68,6 +68,7 @@ def train(run, args):
             device
         )
     elif args.model_type == 'sep-transformer':
+        assert args.pos
         model = build_tp_sep_transformer(args, pad_idx, src_vocab_size)
     else:
         assert args.model_type not in ['transformer', 'language_parser', 'sep-transformer']
@@ -256,46 +257,82 @@ def train(run, args):
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
-            for (iter, batch), (_, batch_pos) in zip(enumerate(train_data), enumerate(train_data_pos)):
-                # transpose src and trg
-                src = batch.src.transpose(0, 1)
-                trg = batch.trg.transpose(0, 1)
+            if args.pos:
+                for (iter, batch), (_, batch_pos) in zip(enumerate(train_data), enumerate(train_data_pos)):
+                    # transpose src and trg
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
 
-                # augment trg
-                trg_input = trg[:, :-1]
-                trg_out = trg[:, 1:]
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_out = trg[:, 1:]
 
-                if args.pos:
                     src_ann = batch_pos.src.transpose(0, 1)
-                    trg_input = batch_pos.trg.transpose(0, 1)[:, :-1]
-                else:
+                    trg_ann_input = batch_pos.trg.transpose(0, 1)[:, :-1]
+
+
+                    # pass through model and get predictions
+
+                    if args.model_type == 'sep-transformer':
+                        out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                        trg_vocab_size = src_vocab_size
+                    else:
+                        out, attn_wts = model(src, trg_input)
+                        adv_stat = None
+
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    # Record Loss
+                    if iter % args.record_loss_every == 0:
+                        loss_datapoint = loss.data.item()
+                        print(
+                            'Run:', run,
+                            'Epochs: ', epoch,
+                            'Iter: ', iter,
+                            'Loss: ', loss_datapoint,
+                            'Adv Stat', adv_stat
+                        )
+                        loss_data.append(loss_datapoint)
+            else:
+                for iter, batch in enumerate(train_data):
+                    # transpose src and trg
+                    src = batch.src.transpose(0, 1)
+                    trg = batch.trg.transpose(0, 1)
+
+                    # augment trg
+                    trg_input = trg[:, :-1]
+                    trg_out = trg[:, 1:]
+
                     src_ann = None
-                    trg_input = None
+                    trg_ann_input = None
 
-                # pass through model and get predictions
+                    # pass through model and get predictions
 
-                if args.model_type == 'sep-transformer':
-                    out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_input)
-                    trg_vocab_size = src_vocab_size
-                else:
-                    out, attn_wts = model(src, trg_input)
-                    adv_stat = None
+                    if args.model_type == 'sep-transformer':
+                        out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                        trg_vocab_size = src_vocab_size
+                    else:
+                        out, attn_wts = model(src, trg_input)
+                        adv_stat = None
 
-                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                # Record Loss
-                if iter % args.record_loss_every == 0:
-                    loss_datapoint = loss.data.item()
-                    print(
-                        'Run:', run,
-                        'Epochs: ', epoch,
-                        'Iter: ', iter,
-                        'Loss: ', loss_datapoint,
-                        'Adv Stat', adv_stat
-                    )
-                    loss_data.append(loss_datapoint)
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    # Record Loss
+                    if iter % args.record_loss_every == 0:
+                        loss_datapoint = loss.data.item()
+                        print(
+                            'Run:', run,
+                            'Epochs: ', epoch,
+                            'Iter: ', iter,
+                            'Loss: ', loss_datapoint,
+                            'Adv Stat', adv_stat
+                        )
+                        loss_data.append(loss_datapoint)
+
 
             # Checkpoint
             if epoch % args.checkpoint_every == 0:

@@ -23,7 +23,7 @@ parser.add_argument('--pos', action='store_true',
                     help='use POS data for supervision')
 parser.add_argument('--num_runs', type=int, default=1,
                     help='Number of runs to do')
-parser.add_argument('--batch_size', type=int, default=32,
+parser.add_argument('--batch_size', type=int, default=128,
                     help='Samples per batch')
 parser.add_argument('--num_epochs', type=int, default=100,
                     help='Number of training epochs')
@@ -32,11 +32,11 @@ parser.add_argument('--num_epochs', type=int, default=100,
 # Transformer Arguments
 parser.add_argument('--model_type',
                     default='language_parser', help='Type of seq2seq model to use')
-parser.add_argument('--d_model', type=int, default=12,
+parser.add_argument('--d_model', type=int, default=64,
                     help="Dimension of inputs/outputs in transformer")
 parser.add_argument('--nhead', type=int, default=2,
                     help='Number of heads in transformer with multihead attention')
-parser.add_argument('--n_layers', type=int, default=2)
+parser.add_argument('--n_layers', type=int, default=1)
 parser.add_argument('--dim_feedforward', type=int, default=20)
 parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--load_weights_from', default=None, required=False)

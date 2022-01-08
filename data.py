@@ -59,8 +59,12 @@ def build_scan(split, batch_size, use_pos, device):
                                        device=device)
 
     # Build Vocabulary
-    SRC.build_vocab(train_)
-    TRG.build_vocab(train_)
+    if use_pos:
+        SRC.build_vocab(train_, train_pos_)
+        TRG.build_vocab(train_, train_pos_)
+    else:
+        SRC.build_vocab(train_)
+        TRG.build_vocab(train_)
 
     return SRC, TRG, (train_data, dev_data, test_data), (train_pos, dev_pos, test_pos)
 
