@@ -5,12 +5,12 @@ python main.py \
 --split addjump \
 --num_runs 1 \
 --batch_size 256 \
---num_epochs 150 \
+--num_epochs 100 \
 --model_type language_parser \
---d_model 256 \
+--d_model 128 \
 --nhead 8 \
---n_layers 2 \
---dim_feedforward 512 \
+--n_layers 1 \
+--dim_feedforward 128 \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir language_parser \

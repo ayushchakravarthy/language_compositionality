@@ -34,7 +34,7 @@ def test(data, model, pad_idx, device, args):
                 correct = correct.all(0).tolist()
                 all_correct_trials += correct
         else:
-            for i, batch in data:
+            for batch in data:
                 # transpose src and trg
                 src = batch.src.transpose(0, 1)
                 trg = batch.trg.transpose(0, 1)

@@ -335,19 +335,28 @@ def train(run, args):
             if epoch % args.checkpoint_every == 0:
                 # Checkpoint on train data
                 print("Checking training accuracy...")
-                train_acc = test(zip(enumerate(train_data), enumerate(train_data_pos)), model, pad_idx, device, args)
+                if args.pos:
+                    train_acc = test(zip(enumerate(train_data), enumerate(train_data_pos)), model, pad_idx, device, args)
+                else:
+                    train_acc = test(train_data, model, pad_idx, device, args)
                 print("Training accuracy is ", train_acc)
                 train_accs.append(train_acc)
 
                 # Checkpoint on development data
                 print("Checking development accuracy...")
-                dev_acc = test(zip(enumerate(dev_data), enumerate(dev_data_pos)), model, pad_idx, device, args)
+                if args.pos:
+                    dev_acc = test(zip(enumerate(dev_data), enumerate(dev_data_pos)), model, pad_idx, device, args)
+                else:
+                    dev_acc = test(dev_data, model, pad_idx, device, args)
                 print("Development accuracy is ", dev_acc)
                 dev_accs.append(dev_acc)
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                test_acc = test(zip(enumerate(test_data), enumerate(test_data_pos)), model, pad_idx, device, args)
+                if args.pos:
+                    test_acc = test(zip(enumerate(test_data), enumerate(test_data_pos)), model, pad_idx, device, args)
+                else:
+                    test_acc = test(test_data, model, pad_idx, device, args)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 
