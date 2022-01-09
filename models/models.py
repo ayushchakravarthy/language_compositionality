@@ -242,7 +242,7 @@ class LanguageParser(nn.Module):
         self.trg_vocab_size = trg_vocab_size
         self.d_model = d_model
         self.nhead = nhead
-        self.num_decoder_layers = 2 * (n_layers + 1)
+        self.num_decoder_layers = 2 * (n_layers)
         self.dim_feedforward = dim_feedforward
         self.dropout = dropout
         self.pad_idx = pad_idx
@@ -443,6 +443,6 @@ def lp_base(dim, n_layers, n_heads):
     n_h = [n_heads, n_heads]
 
     model_cfg = dict(dim=dim, num_layers=n_l, num_heads=n_h,
-                     num_parts=[64, 64], ffn_exp=3, dropout=0.1)
+                     num_parts=[10, 10], ffn_exp=3, dropout=0.1)
     return LPEncoder(**model_cfg)
 

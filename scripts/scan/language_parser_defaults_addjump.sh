@@ -5,7 +5,7 @@ python main.py \
 --split addjump \
 --num_runs 1 \
 --batch_size 256 \
---num_epochs 100 \
+--num_epochs 200 \
 --model_type language_parser \
 --d_model 128 \
 --nhead 8 \
