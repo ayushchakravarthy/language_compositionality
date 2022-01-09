@@ -270,9 +270,7 @@ def train(run, args):
                     src_ann = batch_pos.src.transpose(0, 1)
                     trg_ann_input = batch_pos.trg.transpose(0, 1)[:, :-1]
 
-
                     # pass through model and get predictions
-
                     if args.model_type == 'sep-transformer':
                         out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                         trg_vocab_size = src_vocab_size
@@ -309,7 +307,6 @@ def train(run, args):
                     trg_ann_input = None
 
                     # pass through model and get predictions
-
                     if args.model_type == 'sep-transformer':
                         out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                         trg_vocab_size = src_vocab_size
