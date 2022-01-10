@@ -48,6 +48,8 @@ parser.add_argument('--use_xv', action='store_true',
                     help='use separate value vectors for x (rather than just keys)')
 parser.add_argument('--use_adversary', action='store_true',
                     help='use lexical adversary')
+parser.add_argument('--skip_enc', action='store_true',
+                    help='skip encoder in the sep-transformer')
 parser.add_argument('--adv_lambda', type=float, default=0.01,
                     help='scale of gradients from adversary')
 parser.add_argument('--adv_theta', type=float, default=0.01,

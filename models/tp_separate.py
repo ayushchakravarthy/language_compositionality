@@ -38,23 +38,28 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
   adv_lambda = params.adv_lambda # scale of gradients from adversary
   adv_theta = params.adv_theta # minimum loss to backpropagate to adversary
   adv_lr = params.adv_lr # learning rate for adversary
+  skip_enc = params.skip_enc # skip the encoder completely
 
   embedding = EmbeddingMultilinearSinusoidal(d_vocab=d_vocab,
                                              d_x=d_x,
                                              d_r=d_r,
                                              dropout=dropout,
                                              max_length=200)
-  encoder = Encoder(
-      d_x,
-      d_q,
-      d_k,
-      d_v,
-      d_f,
-      n_I,
-      n_L,
-      use_xv,
-      dropout
-  )
+  if not skip_enc:
+    encoder = Encoder(
+        d_x,
+        d_q,
+        d_k,
+        d_v,
+        d_f,
+        n_I,
+        n_L,
+        use_xv,
+        dropout
+    )
+  else:
+      encoder = None
+
   decoder = Decoder(
       d_x,
       d_q,
@@ -76,7 +81,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                   d_vocab=d_vocab,
                   adv_lambda=adv_lambda,
                   adv_theta=adv_theta,
-                  adv_lr=adv_lr)
+                  adv_lr=adv_lr,
+                  skip_enc=skip_enc)
 
   return model
 
@@ -683,6 +689,7 @@ __init__:
         adv_lambda
         adv_theta
         adv_lr
+        skip_enc
 make_masks:
     Args:
         src: [B, src_seq_len]
@@ -706,7 +713,7 @@ test_adversary:
 class Seq2Seq(nn.Module):
   def __init__(self, embedding, encoder, decoder, pad_idx, 
                use_adversary, d_x, d_vocab, adv_lambda, adv_theta,
-               adv_lr):
+               adv_lr, skip_enc):
     super().__init__()
 
     self.embedding = embedding
@@ -714,6 +721,7 @@ class Seq2Seq(nn.Module):
     self.decoder = decoder
     self.pad_idx = pad_idx
     self.use_adversary = use_adversary
+    self.skip_enc = skip_enc
     self.softmax = nn.LogSoftmax(dim=-1)
 
     # Adversary (optional)
@@ -781,7 +789,11 @@ class Seq2Seq(nn.Module):
     else:
       adv_stat = None
 
-    src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
+    if not self.skip_enc:
+        src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
+    else:
+        encoder_attn_maps = None
+
     # src_x, src_m = [batch_size, src_seq_size, p.d_x]
 
     trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
