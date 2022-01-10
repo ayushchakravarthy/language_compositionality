@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 
 python main.py \
+--use_adversary \
 --pos \
 --dataset scan \
 --split addjump \
 --num_runs 1 \
 --batch_size 256 \
---num_epochs 100 \
+--num_epochs 200 \
 --model_type sep-transformer \
---d_model 400 \
+--d_model 256 \
 --nhead 8 \
---n_layers 6 \
+--n_layers 2 \
 --dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.0005 \
+--learning_rate 0.0001 \
 --results_dir sep-transformer \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \

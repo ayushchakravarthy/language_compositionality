@@ -50,11 +50,11 @@ parser.add_argument('--use_adversary', action='store_true',
                     help='use lexical adversary')
 parser.add_argument('--skip_enc', action='store_true',
                     help='skip encoder in the sep-transformer')
-parser.add_argument('--adv_lambda', type=float, default=0.01,
+parser.add_argument('--adv_lambda', type=float, default=0.001,
                     help='scale of gradients from adversary')
-parser.add_argument('--adv_theta', type=float, default=0.01,
+parser.add_argument('--adv_theta', type=float, default=0.001,
                     help='minimum loss to backpropogate to adversary')
-parser.add_argument('--adv_lr', type=float, default=0.01,
+parser.add_argument('--adv_lr', type=float, default=0.001,
                     help='learning rate for adversary')
 
 # Optimization
