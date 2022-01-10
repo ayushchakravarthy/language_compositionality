@@ -7,10 +7,10 @@ python main.py \
 --batch_size 256 \
 --num_epochs 200 \
 --model_type language_parser \
---d_model 128 \
+--d_model 256 \
 --nhead 8 \
 --n_layers 1 \
---dim_feedforward 128 \
+--dim_feedforward 256 \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir language_parser \
