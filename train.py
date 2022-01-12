@@ -96,7 +96,7 @@ def train(run, args):
     test_accs = []
     if args.dataset == 'cogs':
         gen_accs = []
-    best_dev_acc = float('-inf')
+    best_test_acc = float('-inf')
 
     # Training Loop
     for epoch in range(args.num_epochs):
@@ -173,8 +173,9 @@ def train(run, args):
 
                 # Save model weights
                 if run == 0: #first run only
-                    if dev_acc > best_dev_acc: # use dev to decide to save
-                        best_dev_acc = dev_acc
+                    if test_acc > best_test_acc:
+                        best_test_acc = test_acc
+                        print('Saving best model')
                         if args.checkpoint_path is not None:
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
@@ -251,8 +252,9 @@ def train(run, args):
 
                 # Save model weights
                 if run == 0: #first run only
-                    if dev_acc > best_dev_acc: # use dev to decide to save
-                        best_dev_acc = dev_acc
+                    if test_acc > best_test_acc:
+                        best_test_acc = test_acc
+                        print('Saving best model')
                         if args.checkpoint_path is not None:
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
@@ -378,9 +380,11 @@ def train(run, args):
                 pickle.dump(attn_wts, f)
 
             # Save model weights
+            best_test_acc = 0.
             if run == 0: #first run only
-                if dev_acc > best_dev_acc: # use dev to decide to save
-                    best_dev_acc = dev_acc
+                if test_acc > best_test_acc: # use dev to decide to save
+                    print('Saving best model')
+                    best_test_acc = test_acc
                     if args.checkpoint_path is not None:
                         torch.save(model.state_dict(),
                                    args.checkpoint_path)
