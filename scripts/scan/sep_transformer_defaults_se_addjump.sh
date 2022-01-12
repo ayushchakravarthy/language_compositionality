@@ -5,7 +5,7 @@ python main.py \
 --skip_enc \
 --dataset scan \
 --split addjump \
---num_runs 1 \
+--num_runs 10 \
 --batch_size 256 \
 --num_epochs 200 \
 --model_type sep-transformer \

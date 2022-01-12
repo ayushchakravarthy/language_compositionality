@@ -172,13 +172,12 @@ def train(run, args):
                     pickle.dump(attn_wts, f)
 
                 # Save model weights
-                if run == 0: #first run only
-                    if test_acc > best_test_acc:
-                        best_test_acc = test_acc
-                        print('Saving best model')
-                        if args.checkpoint_path is not None:
-                            torch.save(model.state_dict(),
-                                       args.checkpoint_path)
+                if test_acc > best_test_acc:
+                    best_test_acc = test_acc
+                    print('Saving best model')
+                    if args.checkpoint_path is not None:
+                        torch.save(model.state_dict(),
+                                   args.checkpoint_path)
             elif args.split == 'train-100':
                 for iter, batch in enumerate(train_100_data):
                     # transpose src and trg
@@ -251,13 +250,12 @@ def train(run, args):
                     pickle.dump(attn_wts, f)
 
                 # Save model weights
-                if run == 0: #first run only
-                    if test_acc > best_test_acc:
-                        best_test_acc = test_acc
-                        print('Saving best model')
-                        if args.checkpoint_path is not None:
-                            torch.save(model.state_dict(),
-                                       args.checkpoint_path)
+                if test_acc > best_test_acc:
+                    best_test_acc = test_acc
+                    print('Saving best model')
+                    if args.checkpoint_path is not None:
+                        torch.save(model.state_dict(),
+                                   args.checkpoint_path)
         elif args.dataset == 'scan':
             if args.pos:
                 for (iter, batch), (_, batch_pos) in zip(enumerate(train_data), enumerate(train_data_pos)):
@@ -380,12 +378,11 @@ def train(run, args):
                 pickle.dump(attn_wts, f)
 
             # Save model weights
-            if run == 0: #first run only
-                if test_acc > best_test_acc: # use dev to decide to save
-                    print('Saving best model')
-                    best_test_acc = test_acc
-                    if args.checkpoint_path is not None:
-                        torch.save(model.state_dict(),
-                                   args.checkpoint_path)
+            if test_acc > best_test_acc: # use dev to decide to save
+                print('Saving best model')
+                best_test_acc = test_acc
+                if args.checkpoint_path is not None:
+                    torch.save(model.state_dict(),
+                               args.checkpoint_path)
         else:
             assert args.dataset not in ['scan', 'cogs'], "Unknown split"
