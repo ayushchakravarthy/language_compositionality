@@ -7,7 +7,7 @@ python main.py \
 --split addjump \
 --num_runs 10 \
 --batch_size 256 \
---num_epochs 2 \
+--num_epochs 250 \
 --model_type sep-transformer \
 --d_model 256 \
 --nhead 8 \
