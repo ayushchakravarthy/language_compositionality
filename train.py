@@ -380,7 +380,6 @@ def train(run, args):
                 pickle.dump(attn_wts, f)
 
             # Save model weights
-            best_test_acc = 0.
             if run == 0: #first run only
                 if test_acc > best_test_acc: # use dev to decide to save
                     print('Saving best model')
