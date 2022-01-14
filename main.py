@@ -3,6 +3,13 @@ import torch
 import numpy as np
 import time 
 
+# random_seed = 3417
+random_seed = np.random.randint(1, 100000)
+torch.manual_seed(random_seed)
+torch.cuda.manual_seed(random_seed)
+np.random.seed(random_seed)
+
+
 from train import train
 
 parser = argparse.ArgumentParser()
@@ -69,13 +76,6 @@ parser.add_argument('--record_loss_every', type=int, default=20,
 
 def main(args):
     for run in range(args.num_runs):
-        random_seed = 3407
-        torch.manual_seed(random_seed)
-        torch.cuda.manual_seed(random_seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        np.random.seed(random_seed)
-
         train(run, args)
 
 if __name__ == "__main__":
