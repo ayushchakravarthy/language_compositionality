@@ -7,10 +7,10 @@ python main.py \
 --batch_size 256 \
 --num_epochs 100 \
 --model_type transformer \
---d_model 400 \
+--d_model 128 \
 --nhead 8 \
---n_layers 6 \
---dim_feedforward 512 \
+--n_layers 2 \
+--dim_feedforward 256 \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir transformer \

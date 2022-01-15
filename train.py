@@ -9,7 +9,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from data import build_cogs, build_scan
+from torch.utils.data import DataLoader
+
+from data import build_cogs, build_scan, SCAN
 from models.models import LanguageParser, Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
@@ -22,25 +24,36 @@ def train(run, args):
 
     # Data 
     if args.dataset == 'scan':
-        SRC, TRG, data, ann_data = build_scan(
-            args.split,
-            args.batch_size,
-            use_pos=args.pos,
-            device=device
-        )
-        (train_data, dev_data, test_data) = data
-        (train_data_pos, dev_data_pos, test_data_pos) = ann_data
+        train_data = SCAN(args.split, 'train', args.pos, device)
+        dev_data = SCAN(args.split, 'dev', args.pos, device)
+        test_data = SCAN(args.split, 'test', args.pos, device)            
+
+        SRC, TRG = train_data.get_vocab()
+
+        train_data = DataLoader(train_data,
+                                batch_size=args.batch_size,
+                                shuffle=True,
+                                num_workers=4)
+        dev_data = DataLoader(dev_data,
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=4)
+        test_data = DataLoader(test_data,
+                               batch_size=args.batch_size,
+                               shuffle=True,
+                               num_workers=4)
+
+
     elif args.dataset == 'cogs':
         SRC, TRG, train_data, train_100_data, dev_data, test_data, gen_data =  build_cogs(
             args.batch_size,
             device=device
         )
     # vocab
-    src_vocab_size = len(SRC.vocab.stoi)
-    trg_vocab_size = len(TRG.vocab.stoi)
-    pad_idx = SRC.vocab[SRC.pad_token]
-    assert TRG.vocab[TRG.pad_token] == pad_idx
-
+    src_vocab_size = len(SRC.get_stoi())
+    trg_vocab_size = len(TRG.get_stoi())
+    pad_idx = SRC['<pad>']
+    assert TRG['<pad>'] == pad_idx
 
     # Model
     if args.model_type == "language_parser":
@@ -259,106 +272,63 @@ def train(run, args):
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
         elif args.dataset == 'scan':
-            if args.pos:
-                for (iter, batch), (_, batch_pos) in zip(enumerate(train_data), enumerate(train_data_pos)):
-                    # transpose src and trg
-                    src = batch.src.transpose(0, 1)
-                    trg = batch.trg.transpose(0, 1)
-
-                    # augment trg
-                    trg_input = trg[:, :-1]
-                    trg_out = trg[:, 1:]
-
-                    src_ann = batch_pos.src.transpose(0, 1)
-                    trg_ann_input = batch_pos.trg.transpose(0, 1)[:, :-1]
-
-                    # pass through model and get predictions
-                    if args.model_type == 'sep-transformer':
-                        out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
-                        trg_vocab_size = src_vocab_size
-                    else:
-                        out, attn_wts = model(src, trg_input)
-                        adv_stat = None
-
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                    # Record Loss
-                    if iter % args.record_loss_every == 0:
-                        loss_datapoint = loss.data.item()
-                        print(
-                            'Run:', run,
-                            'Epochs: ', epoch,
-                            'Iter: ', iter,
-                            'Loss: ', loss_datapoint,
-                            'Adv Stat', adv_stat
-                        )
-                        loss_data.append(loss_datapoint)
-            else:
-                for iter, batch in enumerate(train_data):
-                    # transpose src and trg
-                    src = batch.src.transpose(0, 1)
-                    trg = batch.trg.transpose(0, 1)
-
-                    # augment trg
-                    trg_input = trg[:, :-1]
-                    trg_out = trg[:, 1:]
-
+            for iter, batch in enumerate(train_data):
+                # transpose src and trg
+                src = batch['src']
+                trg = batch['trg']
+                try:
+                    src_ann = batch['src_ann']
+                    trg_ann_input = batch['trg_ann'][:, :-1]
+                except:
                     src_ann = None
                     trg_ann_input = None
 
-                    # pass through model and get predictions
-                    if args.model_type == 'sep-transformer':
-                        out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
-                        trg_vocab_size = src_vocab_size
-                    else:
-                        out, attn_wts = model(src, trg_input)
-                        adv_stat = None
+                # augment trg
+                trg_input = trg[:, :-1]
+                trg_out = trg[:, 1:]
 
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                    # Record Loss
-                    if iter % args.record_loss_every == 0:
-                        loss_datapoint = loss.data.item()
-                        print(
-                            'Run:', run,
-                            'Epochs: ', epoch,
-                            'Iter: ', iter,
-                            'Loss: ', loss_datapoint,
-                            'Adv Stat', adv_stat
-                        )
-                        loss_data.append(loss_datapoint)
 
+                # pass through model and get predictions
+                if args.model_type == 'sep-transformer':
+                    out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    trg_vocab_size = src_vocab_size
+                else:
+                    out, attn_wts = model(src, trg_input)
+                    adv_stat = None
+
+                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                # Record Loss
+                if iter % args.record_loss_every == 0:
+                    loss_datapoint = loss.data.item()
+                    print(
+                        'Run:', run,
+                        'Epochs: ', epoch,
+                        'Iter: ', iter,
+                        'Loss: ', loss_datapoint,
+                        'Adv Stat', adv_stat
+                    )
+                    loss_data.append(loss_datapoint)
 
             # Checkpoint
             if epoch % args.checkpoint_every == 0:
                 # Checkpoint on train data
                 print("Checking training accuracy...")
-                if args.pos:
-                    train_acc = test(zip(enumerate(train_data), enumerate(train_data_pos)), model, pad_idx, device, args)
-                else:
-                    train_acc = test(train_data, model, pad_idx, device, args)
+                train_acc = test(train_data, model, pad_idx, device, args)
                 print("Training accuracy is ", train_acc)
                 train_accs.append(train_acc)
 
                 # Checkpoint on development data
                 print("Checking development accuracy...")
-                if args.pos:
-                    dev_acc = test(zip(enumerate(dev_data), enumerate(dev_data_pos)), model, pad_idx, device, args)
-                else:
-                    dev_acc = test(dev_data, model, pad_idx, device, args)
+                dev_acc = test(dev_data, model, pad_idx, device, args)
                 print("Development accuracy is ", dev_acc)
                 dev_accs.append(dev_acc)
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                if args.pos:
-                    test_acc = test(zip(enumerate(test_data), enumerate(test_data_pos)), model, pad_idx, device, args)
-                else:
-                    test_acc = test(test_data, model, pad_idx, device, args)
+                test_acc = test(test_data, model, pad_idx, device, args)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 
