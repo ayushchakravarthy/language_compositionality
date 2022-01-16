@@ -33,15 +33,15 @@ def train(run, args):
         train_data = DataLoader(train_data,
                                 batch_size=args.batch_size,
                                 shuffle=True,
-                                num_workers=4)
+                                num_workers=0)
         dev_data = DataLoader(dev_data,
                               batch_size=args.batch_size,
                               shuffle=True,
-                              num_workers=4)
+                              num_workers=0)
         test_data = DataLoader(test_data,
                                batch_size=args.batch_size,
                                shuffle=True,
-                               num_workers=4)
+                               num_workers=0)
 
 
     elif args.dataset == 'cogs':
