@@ -112,7 +112,7 @@ class SCAN(Dataset):
     
     def __getitem__(self, index):
         if self.use_pos:
-            src_ann = self.src_pos[index],
+            src_ann = self.src_pos[index]
             trg_ann = self.trg_pos[index]
             sample = {
                 'src': self.src[index],

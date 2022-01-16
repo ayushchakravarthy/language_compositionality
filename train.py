@@ -288,7 +288,6 @@ def train(run, args):
                 trg_input = trg[:, :-1]
                 trg_out = trg[:, 1:]
 
-
                 # pass through model and get predictions
                 if args.model_type == 'sep-transformer':
                     out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
