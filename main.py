@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import time 
 
+import torch.multiprocessing as mp
+
 # random_seed = 3417
 random_seed = np.random.randint(1, 100000)
 torch.manual_seed(random_seed)
@@ -79,6 +81,7 @@ def main(args):
         train(run, args)
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn")
     s = time.time()
     args = parser.parse_args()
     print(args)

@@ -20,7 +20,7 @@ from torch.utils.data import Dataset
 class SCAN(Dataset):
     """SCAN dataset preprocessing"""
     
-    def __init__(self, split, set, use_pos=False, device='cpu'):
+    def __init__(self, split, set, use_pos=False, device='cpu', vocabs=None):
         self.use_pos = use_pos
         self.device = device
         self.tokenizer = get_tokenizer("basic_english")
@@ -58,7 +58,10 @@ class SCAN(Dataset):
             self.src_pos = self.tokenize(self.src_pos[:-1])
             self.trg_pos = self.tokenize(self.trg_pos[:-1])
         
-        self.SRC, self.TRG = self.build_vocab()
+        if vocabs is None:
+            self.SRC, self.TRG = self.build_vocab()
+        else:
+            (self.SRC, self.TRG) = vocabs
 
         self.src = self.to_int(self.src, self.SRC)
         self.trg = self.to_int(self.trg, self.TRG)

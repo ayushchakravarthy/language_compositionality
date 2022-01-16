@@ -12,7 +12,7 @@ python main.py \
 --n_layers 2 \
 --dim_feedforward 256 \
 --dropout 0.1 \
---learning_rate 0.0001 \
+--learning_rate 0.0005 \
 --results_dir transformer \
 --out_data_file train_defaults_simple \
 --out_attn_wts train_defaults_simple_attn_maps \

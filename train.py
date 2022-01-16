@@ -24,24 +24,25 @@ def train(run, args):
 
     # Data 
     if args.dataset == 'scan':
-        train_data = SCAN(args.split, 'train', args.pos, device)
-        dev_data = SCAN(args.split, 'dev', args.pos, device)
-        test_data = SCAN(args.split, 'test', args.pos, device)            
-
+        train_data = SCAN(args.split, 'train', args.pos, device, None)
         SRC, TRG = train_data.get_vocab()
+
+        dev_data = SCAN(args.split, 'dev', args.pos, device, (SRC, TRG))
+        test_data = SCAN(args.split, 'test', args.pos, device, (SRC, TRG))            
 
         train_data = DataLoader(train_data,
                                 batch_size=args.batch_size,
                                 shuffle=True,
-                                num_workers=0)
+                                num_workers=2)
         dev_data = DataLoader(dev_data,
                               batch_size=args.batch_size,
                               shuffle=True,
-                              num_workers=0)
+                              num_workers=2)
         test_data = DataLoader(test_data,
                                batch_size=args.batch_size,
                                shuffle=True,
-                               num_workers=0)
+                               num_workers=2)
+        
 
 
     elif args.dataset == 'cogs':
