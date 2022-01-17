@@ -1,8 +1,10 @@
 import numpy as np
-import math
+import operator
 import torch
 
-def test(data, model, pad_idx, device, args):
+from itertools import compress
+
+def test(data, model, pad_idx, device, args, save=False):
     model.eval()
     with torch.no_grad():
         all_correct_trials = []
@@ -28,13 +30,31 @@ def test(data, model, pad_idx, device, args):
 
             preds = torch.argmax(out, axis=2)
 
+
             correct_pred = preds == trg_out
             correct_pred = correct_pred.cpu().numpy()
             mask = trg_out == pad_idx
             mask = mask.cpu().numpy()
             correct = np.logical_or(mask, correct_pred)
-            correct = correct.all(0).tolist()
+            correct = correct.all(1).tolist()
+            if args.model_type == 'sep-transformer' and save:
+                wrong = list(map(operator.not_, correct))
+                w_idx = list(compress(range(len(wrong)), wrong))
+                enc_maps = []
+                dec_maps = []
+                for layer in range(args.n_layers):
+                    if attn_wts['Encoder'] is not None:
+                        enc_maps.append(attn_wts['Encoder'][layer][w_idx])
+
+                    dec_maps.append({
+                        'self': attn_wts['Decoder'][layer]['Sublayer1'][w_idx],
+                        'mha': attn_wts['Decoder'][layer]['Sublayer2'][w_idx]
+                    })
+                wrong_samples = trg_out[w_idx]
+                ret = (enc_maps, dec_maps, wrong_samples)
+            else:
+                ret = None
             all_correct_trials += correct
         accuracy = np.mean(all_correct_trials)
     model.train()
-    return accuracy
+    return accuracy, ret

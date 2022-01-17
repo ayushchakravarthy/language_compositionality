@@ -33,15 +33,15 @@ def train(run, args):
         train_data = DataLoader(train_data,
                                 batch_size=args.batch_size,
                                 shuffle=True,
-                                num_workers=2)
+                                num_workers=0)
         dev_data = DataLoader(dev_data,
                               batch_size=args.batch_size,
                               shuffle=True,
-                              num_workers=2)
+                              num_workers=0)
         test_data = DataLoader(test_data,
                                batch_size=args.batch_size,
                                shuffle=True,
-                               num_workers=2)
+                               num_workers=0)
         
 
 
@@ -316,19 +316,19 @@ def train(run, args):
             if epoch % args.checkpoint_every == 0:
                 # Checkpoint on train data
                 print("Checking training accuracy...")
-                train_acc = test(train_data, model, pad_idx, device, args)
+                train_acc, _ = test(train_data, model, pad_idx, device, args)
                 print("Training accuracy is ", train_acc)
                 train_accs.append(train_acc)
 
                 # Checkpoint on development data
                 print("Checking development accuracy...")
-                dev_acc = test(dev_data, model, pad_idx, device, args)
+                dev_acc, _ = test(dev_data, model, pad_idx, device, args)
                 print("Development accuracy is ", dev_acc)
                 dev_accs.append(dev_acc)
 
                 # Checkpoint on test data
                 print("Checking test accuracy...")
-                test_acc = test(test_data, model, pad_idx, device, args)
+                test_acc, ret = test(test_data, model, pad_idx, device, args, True)
                 print("Test accuracy is ", test_acc)
                 test_accs.append(test_acc)
 
@@ -347,12 +347,12 @@ def train(run, args):
         
             # Write attn weights to pickle file
             with open(attn_file, 'wb') as f:
-                pickle.dump(attn_wts, f)
+                pickle.dump(ret, f)
 
             # Save model weights
             if run == 0:
                 if test_acc > best_test_acc: # use dev to decide to save
-                    print('Saving best model')
+                    print(f'Saving best model: {epoch}')
                     best_test_acc = test_acc
                     if args.checkpoint_path is not None:
                         torch.save(model.state_dict(),
