@@ -50,8 +50,7 @@ def test(data, model, pad_idx, device, args, save=False):
                         'self': attn_wts['Decoder'][layer]['Sublayer1'][w_idx],
                         'mha': attn_wts['Decoder'][layer]['Sublayer2'][w_idx]
                     })
-                wrong_samples = trg_out[w_idx]
-                ret = (enc_maps, dec_maps, wrong_samples)
+                ret = (enc_maps, dec_maps, src[w_idx], trg_out[w_idx], preds[w_idx])
             else:
                 ret = None
             all_correct_trials += correct

@@ -277,10 +277,11 @@ def train(run, args):
                 # transpose src and trg
                 src = batch['src']
                 trg = batch['trg']
-                try:
+
+                if args.pos:
                     src_ann = batch['src_ann']
                     trg_ann_input = batch['trg_ann'][:, :-1]
-                except:
+                else:
                     src_ann = None
                     trg_ann_input = None
 
