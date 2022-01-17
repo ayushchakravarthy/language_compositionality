@@ -345,9 +345,6 @@ def train(run, args):
             with open(results_fn, 'w') as f:
                 json.dump(stats, f)
         
-            # Write attn weights to pickle file
-            with open(attn_file, 'wb') as f:
-                pickle.dump(ret, f)
 
             # Save model weights
             if run == 0:
@@ -357,5 +354,8 @@ def train(run, args):
                     if args.checkpoint_path is not None:
                         torch.save(model.state_dict(),
                                    args.checkpoint_path)
+                    # Write attn weights to pickle file
+                    with open(attn_file, 'wb') as f:
+                        pickle.dump(ret, f)
         else:
             assert args.dataset not in ['scan', 'cogs'], "Unknown split"
