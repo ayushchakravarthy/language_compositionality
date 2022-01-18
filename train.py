@@ -43,6 +43,11 @@ def train(run, args):
                                shuffle=True,
                                num_workers=0)
         
+        # vocab
+        src_vocab_size = len(SRC.get_stoi())
+        trg_vocab_size = len(TRG.get_stoi())
+        pad_idx = SRC['<pad>']
+        assert TRG['<pad>'] == pad_idx
 
 
     elif args.dataset == 'cogs':
@@ -50,11 +55,12 @@ def train(run, args):
             args.batch_size,
             device=device
         )
-    # vocab
-    src_vocab_size = len(SRC.get_stoi())
-    trg_vocab_size = len(TRG.get_stoi())
-    pad_idx = SRC['<pad>']
-    assert TRG['<pad>'] == pad_idx
+
+        src_vocab_size = len(SRC.vocab.stoi)
+        trg_vocab_size = len(TRG.vocab.stoi)
+        pad_idx = SRC.vocab[SRC.pad_token]
+        assert TRG.vocab[TRG.pad_token] == pad_idx
+
 
     # Model
     if args.model_type == "language_parser":
@@ -206,7 +212,7 @@ def train(run, args):
                     # get predictions
                     out, attn_wts = model(src, trg_input)
 
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
+                    loss = loss_fn(out.reshape(-1, trg_vocab_size), trg_out.reshape(-1))
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
