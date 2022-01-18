@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 python main.py \
---use_adversary \
 --pos \
 --dataset scan \
---split addjump \
---num_runs 1 \
+--split mcd1 \
+--num_runs 5 \
 --batch_size 256 \
---num_epochs 200 \
+--num_epochs 250 \
 --model_type sep-transformer \
 --d_model 256 \
 --nhead 8 \
@@ -16,8 +15,8 @@ python main.py \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir sep-transformer \
---out_data_file train_defaults_jump \
---out_attn_wts train_defaults_jump_attn_maps \
---checkpoint_path ../weights/sep-transformer/scan/defaults_addjump.pt \
+--out_data_file train_sep_enc_mcd1 \
+--out_attn_wts train_sep_enc_mcd1_attn_maps \
+--checkpoint_path ../weights/sep-transformer/scan/defaults_sep_enc_mcd1.pt \
 --checkpoint_every 4 \
 --record_loss_every 20

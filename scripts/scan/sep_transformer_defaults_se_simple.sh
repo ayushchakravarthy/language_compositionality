@@ -2,7 +2,6 @@
 
 python main.py \
 --pos \
---skip_enc \
 --dataset scan \
 --split addjump \
 --num_runs 1 \
