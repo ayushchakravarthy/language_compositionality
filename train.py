@@ -287,6 +287,7 @@ def train(run, args):
                 if args.pos:
                     src_ann = batch['src_ann']
                     trg_ann_input = batch['trg_ann'][:, :-1]
+                    trg_ann_output = batch['trg_ann'][:, 1:]
                 else:
                     src_ann = None
                     trg_ann_input = None
@@ -303,7 +304,7 @@ def train(run, args):
                     out, attn_wts = model(src, trg_input)
                     adv_stat = None
 
-                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()

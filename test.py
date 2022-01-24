@@ -29,7 +29,7 @@ def test(data, model, pad_idx, device, args, save=False):
                 else:
                     out, attn_wts = model(src, trg_input)
 
-                preds = torch.argmax(out, axis=2)
+                preds = torch.argmax(out[0], axis=2)
 
 
                 correct_pred = preds == trg_out

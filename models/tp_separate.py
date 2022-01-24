@@ -44,7 +44,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                                              d_x=d_x,
                                              d_r=d_r,
                                              dropout=dropout,
-                                             max_length=200)
+                                             max_length=200,
+                                             cat_xm=cat_xm)
   if not skip_enc:
     encoder = Encoder(
         d_x,
@@ -82,7 +83,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                   adv_lambda=adv_lambda,
                   adv_theta=adv_theta,
                   adv_lr=adv_lr,
-                  skip_enc=skip_enc)
+                  skip_enc=skip_enc,
+                  cat_xm=cat_xm)
 
   return model
 
@@ -151,11 +153,12 @@ forward:
         emb_m: [B, src_seq_len, d]
 """
 class EmbeddingMultilinearSinusoidal(nn.Module):
-  def __init__(self, d_vocab, d_x, d_r, dropout, max_length):
+  def __init__(self, d_vocab, d_x, d_r, dropout, max_length, cat_xm):
     super(EmbeddingMultilinearSinusoidal, self).__init__()
     self.dropout = nn.Dropout(dropout)
     self.max_length = max_length
     self.d_x = d_x
+    self.cat_xm = cat_xm
 
     # token encodings
     self.x_embedding = nn.Embedding(d_vocab, d_x)
@@ -202,7 +205,12 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
   def transpose_forward(self, trg):
     # trg = [batch_size, trg_seq_len, d_v, d_r]
 
-    logits = torch.matmul(trg, torch.transpose(self.m_embedding.weight, 0, 1))
+    if self.cat_xm:
+        l_m = torch.matmul(trg[0], torch.transpose(self.m_embedding.weight, 0, 1))
+        l_x = torch.matmul(trg[1], torch.transpose(self.x_embedding.weight, 0, 1))
+        logits = (l_m, l_x)
+    else:
+        logits = torch.matmul(trg, torch.transpose(self.m_embedding.weight, 0, 1))
     # logits = [batch_size, trg_seq_len, d_vocab]
     return logits
 
@@ -398,8 +406,8 @@ class Decoder(nn.Module):
         n_I,
         dropout
     ) for _ in range(n_L)])
-    if self.cat_xm:
-      self.out = nn.Linear(2*d_x, d_x)
+    # if self.cat_xm:
+    #   self.out = nn.Linear(2*d_x, d_x)
 
   def forward(self, trg_x, trg_m, src_x, src_m, trg_mask, src_mask):
     # trg_x, trg_m = [batch_size, trg_seq_size, d_x]
@@ -417,8 +425,7 @@ class Decoder(nn.Module):
       decoder_attn_maps.append(attns)
 
     if self.cat_xm:
-      trg = torch.cat([trg_x,trg_m], dim=2)
-      trg = self.out(trg)
+        trg = (trg_m, trg_x)
     else:
       trg = trg_m
 
@@ -581,14 +588,6 @@ class SelfAttention(nn.Module):
     attention = self.dropout(F.softmax(dot, dim=-1))
     # attention = [batch_size, n_heads, seq_size, seq_size]
 
-    # uniform dist
-    # rand = (torch.rand(attention.shape) / 5) - 0.1
-    
-    # normal dist
-    # rand = torch.normal(0.0, 0.1, attention.shape, device=key.device)
-
-    # attention += rand
-
     if self.use_xv:
       xV = self.W_xv(key)
       xV = xV.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
@@ -713,7 +712,7 @@ test_adversary:
 class Seq2Seq(nn.Module):
   def __init__(self, embedding, encoder, decoder, pad_idx, 
                use_adversary, d_x, d_vocab, adv_lambda, adv_theta,
-               adv_lr, skip_enc):
+               adv_lr, skip_enc, cat_xm):
     super().__init__()
 
     self.embedding = embedding
@@ -722,6 +721,7 @@ class Seq2Seq(nn.Module):
     self.pad_idx = pad_idx
     self.use_adversary = use_adversary
     self.skip_enc = skip_enc
+    self.cat_xm = cat_xm
     self.softmax = nn.LogSoftmax(dim=-1)
 
     # Adversary (optional)
@@ -802,7 +802,10 @@ class Seq2Seq(nn.Module):
     logits = self.embedding.transpose_forward(trg)
     # logits = [batch_size, trg_seq_size, d_vocab]
 
-    logits = self.softmax(logits)
+    if self.cat_xm:
+        logits = (self.softmax(logits[0]), self.softmax(logits[1]))
+    else:
+        logits = self.softmax(logits)
 
     attn_maps = {
         'Encoder': encoder_attn_maps,
