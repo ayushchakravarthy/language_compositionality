@@ -4,7 +4,7 @@ python main.py \
 --pos \
 --cat_xm \
 --use_noise \
---noise_scale 0.0001 \
+--noise_scale 0.00001 \
 --dataset scan \
 --split addjump \
 --num_runs 5 \

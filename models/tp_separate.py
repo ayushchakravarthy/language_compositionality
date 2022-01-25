@@ -623,9 +623,9 @@ class SelfAttention(nn.Module):
             dot = dot.masked_fill(mask == 0, -1e10)
 
         if self.use_noise:
+            reg = torch.linalg.norm(dot, ord=2, dim=-1).detach()
             dot += torch.randn(size=dot.shape, device=dot.device)
             dot = F.softmax(dot, dim=-1)
-            reg = torch.linalg.norm(dot, ord=2, dim=-1).detach()
 
         attention = self.dropout(dot)
         # attention = [batch_size, n_heads, seq_size, seq_size]
@@ -847,7 +847,7 @@ class Seq2Seq(nn.Module):
 
         if self.use_noise:
             trg, decoder_attn_maps, dec_reg = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
-            noise_loss = torch.mean(dec_reg.reshape(-1)) + torch.mean(enc_reg.reshape(-1))
+            noise_loss = torch.sum(dec_reg.reshape(-1)) + torch.sum(enc_reg.reshape(-1))
         else:
             trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
             noise_loss = None
