@@ -18,8 +18,8 @@ python main.py \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir sep-transformer \
---out_data_file train_nta_jump \
---out_attn_wts train_nta_jump_attn_maps \
---checkpoint_path ../weights/sep-transformer/scan/nta_addjump.pt \
+--out_data_file train_noise_jump \
+--out_attn_wts train_noise_jump_attn_maps \
+--checkpoint_path ../weights/sep-transformer/scan/noise_addjump.pt \
 --checkpoint_every 4 \
 --record_loss_every 20

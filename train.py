@@ -323,7 +323,7 @@ def train(run, args):
                         'Iter: ', iter,
                         'Loss: ', loss_datapoint,
                         'Adv Stat', adv_stat,
-                        'Cumulative Embedding Norm', noise_loss.data.item()
+                        'Cumulative Attention Norm', noise_loss.data.item()
                     )
                     loss_data.append(loss_datapoint)
 
