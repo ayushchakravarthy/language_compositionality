@@ -21,6 +21,7 @@ def train(run, args):
     # CUDA 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
+    comp_supervision = args.cat_xm
 
     # Data 
     if args.dataset == 'scan':
@@ -298,13 +299,18 @@ def train(run, args):
 
                 # pass through model and get predictions
                 if args.model_type == 'sep-transformer':
-                    out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    out, adv_stat, noise_loss, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                     trg_vocab_size = src_vocab_size
                 else:
                     out, attn_wts = model(src, trg_input)
                     adv_stat = None
 
-                loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
+                if comp_supervision:
+                    loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
+                    loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1)) + \
+                    args.noise_scale * noise_loss
+                else:
+                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -316,7 +322,8 @@ def train(run, args):
                         'Epochs: ', epoch,
                         'Iter: ', iter,
                         'Loss: ', loss_datapoint,
-                        'Adv Stat', adv_stat
+                        'Adv Stat', adv_stat,
+                        'Cumulative Embedding Norm', noise_loss.data.item()
                     )
                     loss_data.append(loss_datapoint)
 

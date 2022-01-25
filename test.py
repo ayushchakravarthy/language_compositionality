@@ -25,12 +25,14 @@ def test(data, model, pad_idx, device, args, save=False):
                 trg_out = trg[:, 1:]
 
                 if args.model_type == 'sep-transformer':
-                    out, adv_stat, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    out, _, _, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                 else:
                     out, attn_wts = model(src, trg_input)
 
-                preds = torch.argmax(out[0], axis=2)
-
+                if args.cat_xm:
+                    preds = torch.argmax(out[0], axis=2)
+                else:
+                    preds = torch.argmax(out, axis=2)
 
                 correct_pred = preds == trg_out
                 correct_pred = correct_pred.cpu().numpy()
