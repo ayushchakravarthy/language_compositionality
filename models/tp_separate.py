@@ -9,7 +9,6 @@ import string
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
 def build_tp_sep_transformer(params, pad_idx, vocab_size):
@@ -34,7 +33,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
     adv_theta = params.adv_theta # minimum loss to backpropagate to adversary
     adv_lr = params.adv_lr # learning rate for adversary
     skip_enc = params.skip_enc # skip the encoder completely
-    noise = params.use_noise    
+    sp_kernel = params.sp_kernel # use alternate similarity computation for search part of attention
+    threshold = params.threshold
 
     embedding = EmbeddingMultilinearSinusoidal(d_vocab=d_vocab,
                                                d_x=d_x,
@@ -52,7 +52,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
             n_I,
             n_L,
             use_xv,
-            noise,
+            sp_kernel,
+            threshold,
             dropout
         )
     else:
@@ -64,7 +65,8 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
         d_v,
         d_f,
         use_xv,
-        noise,
+        sp_kernel,
+        threshold,
         cat_xm,
         n_I,
         n_L,
@@ -81,8 +83,7 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                     adv_theta=adv_theta,
                     adv_lr=adv_lr,
                     skip_enc=skip_enc,
-                    cat_xm=cat_xm,
-                    use_noise=noise)    
+                    cat_xm=cat_xm)
     return model
 
 # Scale adversary gradient
@@ -241,9 +242,8 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class Encoder(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, use_xv, noise, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, use_xv, sp_kernel, threshold, dropout):
         super().__init__()
-        self.use_noise = noise
 
         layers = [EncoderLayer(
             d_x,
@@ -253,7 +253,8 @@ class Encoder(nn.Module):
             d_f,
             n_I,
             use_xv,
-            noise,
+            sp_kernel,
+            threshold,
             dropout
         )]
         for _ in range(n_L - 1):
@@ -265,7 +266,8 @@ class Encoder(nn.Module):
             d_f,
             n_I,
             use_xv,
-            noise,
+            sp_kernel,
+            threshold,
             dropout
           ))
         self.layers = nn.ModuleList(layers)
@@ -274,21 +276,12 @@ class Encoder(nn.Module):
         # src_x = [batch_size, src_seq_len, p.d_x]
         # src_m = [batch_size, src_seq_len, p.d_x]
         # src_mask = [batch_size, 1, attn_size]
-        if self.use_noise:
-            reg = 0.
         encoder_attn_maps = []
         for layer in self.layers:
-            if self.use_noise:
-                src_x, src_m, attn, r = layer(src_x, src_m, src_mask)
-                reg += r
-            else:
-                src_x, src_m, attn = layer(src_x, src_m, src_mask)
+            src_x, src_m, attn = layer(src_x, src_m, src_mask)
             encoder_attn_maps.append(attn)
 
-        if self.use_noise:
-            return src_x, src_m, encoder_attn_maps, reg
-        else:
-            return src_x, src_m, encoder_attn_maps
+        return src_x, src_m, encoder_attn_maps
 
 
 """
@@ -314,14 +307,13 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class EncoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, use_xv, noise, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, use_xv, sp_kernel, threshold, dropout):
         super().__init__()
-        self.use_noise = noise
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, noise, dropout)
+        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
@@ -344,10 +336,7 @@ class EncoderLayer(nn.Module):
         # sublayer 1
         x = self.x_layernorm1(src_x)
         m = self.m_layernorm1(src_m)
-        if self.use_noise:
-            x, m, attn, reg = self.MHA(x, x, m, src_mask)
-        else:
-            x, m, attn = self.MHA(x, x, m, src_mask)
+        x, m, attn = self.MHA(x, x, m, src_mask)
         x = self.x_dropout1(x)
         m = self.m_dropout1(m)
         src_x = self.x_layernorm2(src_x + x)
@@ -360,10 +349,7 @@ class EncoderLayer(nn.Module):
         src_x = self.x_layernorm3(src_x + x)
         src_m = self.m_layernorm3(src_m + m)
 
-        if self.use_noise:
-            return src_x, src_m, attn, reg
-        else:
-            return src_x, src_m, attn
+        return src_x, src_m, attn
 
 """
 Transformer Decoder
@@ -399,7 +385,8 @@ class Decoder(nn.Module):
         d_v,
         d_f,
         use_xv,
-        noise,
+        sp_kernel,
+        threshold,
         cat_xm,
         n_I,
         n_L,
@@ -407,7 +394,6 @@ class Decoder(nn.Module):
     ):
         super().__init__()
         self.cat_xm = cat_xm
-        self.use_noise = noise
 
         self.layers = nn.ModuleList([DecoderLayer(
             d_x,
@@ -416,7 +402,8 @@ class Decoder(nn.Module):
             d_v,
             d_f,
             use_xv,
-            noise,
+            sp_kernel,
+            threshold,
             n_I,
             dropout
         ) for _ in range(n_L)])
@@ -430,15 +417,9 @@ class Decoder(nn.Module):
         # src_mask = [batch_size, src_seq_size]
         decoder_attn_maps = []
 
-        if self.use_noise:
-            reg = 0.
 
         for layer in self.layers:
-            if self.use_noise:
-                trg_x, trg_m, attn_self, attn_enc, r = layer(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
-                reg += r
-            else:
-                trg_x, trg_m, attn_self, attn_enc = layer(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
+            trg_x, trg_m, attn_self, attn_enc = layer(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
             attns = {
                 'Sublayer1': attn_self,
                 'Sublayer2': attn_enc
@@ -450,10 +431,7 @@ class Decoder(nn.Module):
         else:
             trg = trg_m
 
-        if self.use_noise:
-            return trg, decoder_attn_maps, reg
-        else:
-            return trg, decoder_attn_maps
+        return trg, decoder_attn_maps
 
 
 """
@@ -481,20 +459,19 @@ forward:
         src_mask: [B, trg_seq_len]
 """
 class DecoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, use_xv, noise, n_I, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, use_xv, sp_kernel, threshold, n_I, dropout):
         super().__init__()
-        self.use_noise = noise
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, noise, dropout)
+        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
         self.x_layernorm2 = nn.LayerNorm(d_x)
         self.m_layernorm2 = nn.LayerNorm(d_x)
-        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, noise, dropout)
+        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
         self.x_dropout2 = nn.Dropout(dropout)
         self.m_dropout2 = nn.Dropout(dropout)
         # sublayer 3
@@ -519,20 +496,14 @@ class DecoderLayer(nn.Module):
         # self attention
         x = self.x_layernorm1(trg_x)
         m = self.m_layernorm1(trg_m)
-        if self.use_noise:
-            x, m, attn_self, reg_s = self.selfAttn(x, x, m, trg_mask)
-        else:
-            x, m, attn_self = self.selfAttn(x, x, m, trg_mask)
+        x, m, attn_self = self.selfAttn(x, x, m, trg_mask)
         x = self.x_dropout1(x)
         m = self.m_dropout1(m)
         trg_x = self.x_layernorm2(trg_x + x)
         trg_m = self.m_layernorm2(trg_m + m)
 
         # encoder attention
-        if self.use_noise:
-            x, m, attn_enc, reg_e = self.encAttn(x, src_x, src_m, src_mask)
-        else:
-            x, m, attn_enc = self.encAttn(x, src_x, src_m, src_mask)
+        x, m, attn_enc = self.encAttn(x, src_x, src_m, src_mask)
         x = self.x_dropout2(x)
         m = self.m_dropout2(m)
         trg_x = self.x_layernorm3(trg_x + x)
@@ -545,10 +516,7 @@ class DecoderLayer(nn.Module):
         trg_x = self.x_layernorm4(trg_x + x)
         trg_m = self.m_layernorm4(trg_m + m)
 
-        if self.use_noise:
-            return trg_x, trg_m, attn_self, attn_enc, reg_s + reg_e
-        else:
-            return trg_x, trg_m, attn_self, attn_enc
+        return trg_x, trg_m, attn_self, attn_enc
     
 
 """
@@ -572,7 +540,7 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, noise, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout):
         super().__init__()
         self.d_x = d_x
         self.d_q = d_q
@@ -580,9 +548,16 @@ class SelfAttention(nn.Module):
         self.d_v = d_v
         self.n_I = n_I
         self.use_xv = use_xv # use separate value vectors for x (rather than keys)
-        self.use_noise = noise
         #TODO 
-        self.tau = 1.2
+        self.sp_kernel = sp_kernel
+
+        if sp_kernel:
+            self.tau = threshold
+            self.sigma = torch.nn.Parameter(torch.randn((1)))
+            self.sigma.requires_grad = True
+            self.threshold = torch.nn.Threshold(self.tau, 0, inplace=True)
+        else:
+            self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
 
         self.W_q = nn.Linear(self.d_x, d_q * n_I)
         self.W_k = nn.Linear(self.d_x, d_k * n_I)
@@ -594,11 +569,7 @@ class SelfAttention(nn.Module):
         self.W_mo = nn.Linear(d_k * n_I, d_x)
 
         self.dropout = nn.Dropout(dropout)
-        self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
-        self.sigma = torch.nn.Parameter(torch.randn((1)))
-        self.sigma.requires_grad = True
         self.mul_scale = torch.FloatTensor([1./math.sqrt(math.sqrt(2) - 1)])
-        self.threshold = torch.nn.Threshold(self.tau, 0, inplace=True)
 
 
 
@@ -619,8 +590,11 @@ class SelfAttention(nn.Module):
         V = V.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
         # Q, K, V = [batch_size, n_heads, seq_size, d_*]
 
-        dot = self.threshold(torch.einsum('bhid,bhjd->bhij', Q, K))
-        dot = F.softmax(dot - 1 / self.sigma, dim=-1)
+        if self.sp_kernel:
+            dot = self.threshold(torch.einsum('bhid,bhjd->bhij', Q, K))
+            dot = (dot - 1) / self.sigma
+        else:
+            dot = torch.einsum('bhid, bhjd -> bhij', Q, K) / self.dot_scale.to(key.device)
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
         # src_mask = [batch_size, 1      , 1             , attn]
         # trg_mask = [batch_size, 1      , query_specific, attn]
@@ -628,12 +602,7 @@ class SelfAttention(nn.Module):
         if mask is not None:
             dot = dot.masked_fill(mask == 0, -1e10)
 
-        if self.use_noise:
-            reg = torch.linalg.norm(dot, ord=2, dim=-1).detach()
-            dot += torch.randn(size=dot.shape, device=dot.device)
-            dot = F.softmax(dot, dim=-1)
-
-        attention = self.dropout(dot)
+        attention = self.dropout(F.softmax(dot, dim=-1))
         # attention = [batch_size, n_heads, seq_size, seq_size]
 
         if self.use_xv:
@@ -658,10 +627,7 @@ class SelfAttention(nn.Module):
         m = self.W_mo(v_bar)
         # x, m = [batch_size, seq_size, d_x]
 
-        if self.use_noise:
-            return x, m, attention, reg
-        else:
-            return x, m, attention
+        return x, m, attention
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.W_q.weight)
@@ -763,7 +729,7 @@ test_adversary:
 class Seq2Seq(nn.Module):
     def __init__(self, embedding, encoder, decoder, pad_idx, 
                  use_adversary, d_x, d_vocab, adv_lambda, adv_theta,
-                 adv_lr, skip_enc, cat_xm, use_noise):
+                 adv_lr, skip_enc, cat_xm):
         super().__init__()
 
         self.embedding = embedding
@@ -773,7 +739,6 @@ class Seq2Seq(nn.Module):
         self.use_adversary = use_adversary
         self.skip_enc = skip_enc
         self.cat_xm = cat_xm
-        self.use_noise = use_noise
         self.softmax = nn.LogSoftmax(dim=-1)
 
         # Adversary (optional)
@@ -842,21 +807,12 @@ class Seq2Seq(nn.Module):
             adv_stat = None
 
         if not self.skip_enc:
-            if self.use_noise:
-                src_x, src_m, encoder_attn_maps, enc_reg = self.encoder(src_x, src_m, src_mask)
-            else:
-                src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
+            src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
         else:
             encoder_attn_maps = None
-
         # src_x, src_m = [batch_size, src_seq_size, p.d_x]
 
-        if self.use_noise:
-            trg, decoder_attn_maps, dec_reg = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
-            noise_loss = torch.sum(dec_reg.reshape(-1)) + torch.sum(enc_reg.reshape(-1))
-        else:
-            trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
-            noise_loss = None
+        trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
         # trg = [batch_size, trg_seq_size, d_x]
 
         logits = self.embedding.transpose_forward(trg)
@@ -872,7 +828,7 @@ class Seq2Seq(nn.Module):
             'Decoder': decoder_attn_maps
         }
 
-        return logits, adv_stat, noise_loss, attn_maps
+        return logits, adv_stat, attn_maps
 
     def train_adversary(self, src_emb_x, trg_emb_x, src, trg):
         # src_emb_x = [batch_size, src_seq_len, d_x]

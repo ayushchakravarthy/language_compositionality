@@ -50,10 +50,9 @@ parser.add_argument('--use_xv', action='store_true',
                     help='use separate value vectors for x (rather than just keys)')
 parser.add_argument('--use_adversary', action='store_true',
                     help='use lexical adversary')
-parser.add_argument('--use_noise', action='store_true',
-                    help='use noise regularization')
-parser.add_argument('--noise_scale', type=float, default=0.0001,
-                    help='scale for embedding norm')
+parser.add_argument('--sp_kernel', action='store_true',
+                    help='use modified spherical gaussian kernel for similarity')
+parser.add_argument('--threshold', type=float, default=0.5)
 parser.add_argument('--skip_enc', action='store_true',
                     help='skip encoder in the sep-transformer')
 parser.add_argument('--adv_lambda', type=float, default=0.001,
