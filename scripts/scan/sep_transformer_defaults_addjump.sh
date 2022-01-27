@@ -14,7 +14,7 @@ python main.py \
 --n_layers 2 \
 --dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.0001 \
+--learning_rate 0.001 \
 --results_dir sep-transformer \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \

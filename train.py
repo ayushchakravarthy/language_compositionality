@@ -299,16 +299,25 @@ def train(run, args):
 
                 # pass through model and get predictions
                 if args.model_type == 'sep-transformer':
-                    out, adv_stat, noise_loss, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    if args.use_noise:
+                        out, adv_stat, noise_loss, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    else:
+                        out, adv_stat, _, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                     trg_vocab_size = src_vocab_size
                 else:
                     out, attn_wts = model(src, trg_input)
                     adv_stat = None
 
                 if comp_supervision:
-                    loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
-                    loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1)) + \
-                    args.noise_scale * noise_loss
+                    if args.use_noise:
+                        loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
+                        loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1)) + \
+                        args.noise_scale * noise_loss
+                        noise_loss = noise_loss.data.item()
+                    else:
+                        loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
+                        loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
+                        noise_loss = None
                 else:
                     loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
                 optimizer.zero_grad()
@@ -323,7 +332,7 @@ def train(run, args):
                         'Iter: ', iter,
                         'Loss: ', loss_datapoint,
                         'Adv Stat', adv_stat,
-                        'Cumulative Attention Norm', noise_loss.data.item()
+                        'Cumulative Attention Norm', noise_loss
                     )
                     loss_data.append(loss_datapoint)
 

@@ -581,6 +581,8 @@ class SelfAttention(nn.Module):
         self.n_I = n_I
         self.use_xv = use_xv # use separate value vectors for x (rather than keys)
         self.use_noise = noise
+        #TODO 
+        self.tau = 1.2
 
         self.W_q = nn.Linear(self.d_x, d_q * n_I)
         self.W_k = nn.Linear(self.d_x, d_k * n_I)
@@ -593,7 +595,10 @@ class SelfAttention(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
+        self.sigma = torch.nn.Parameter(torch.randn((1)))
+        self.sigma.requires_grad = True
         self.mul_scale = torch.FloatTensor([1./math.sqrt(math.sqrt(2) - 1)])
+        self.threshold = torch.nn.Threshold(self.tau, 0, inplace=True)
 
 
 
@@ -614,7 +619,8 @@ class SelfAttention(nn.Module):
         V = V.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
         # Q, K, V = [batch_size, n_heads, seq_size, d_*]
 
-        dot = torch.einsum('bhid,bhjd->bhij', Q, K) / self.dot_scale.to(key.device)
+        dot = self.threshold(torch.einsum('bhid,bhjd->bhij', Q, K))
+        dot = F.softmax(dot - 1 / self.sigma, dim=-1)
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
         # src_mask = [batch_size, 1      , 1             , attn]
         # trg_mask = [batch_size, 1      , query_specific, attn]
