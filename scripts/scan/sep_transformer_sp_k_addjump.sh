@@ -18,8 +18,8 @@ python main.py \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir sep-transformer \
---out_data_file train_defaults_jump \
---out_attn_wts train_defaults_jump_attn_maps \
---checkpoint_path ../weights/sep-transformer/scan/defaults_addjump.pt \
+--out_data_file train_sp_k_jump \
+--out_attn_wts train_sp_k_jump_attn_maps \
+--checkpoint_path ../weights/sep-transformer/scan/sp_k_addjump.pt \
 --checkpoint_every 4 \
 --record_loss_every 20

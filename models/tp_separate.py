@@ -471,7 +471,7 @@ class DecoderLayer(nn.Module):
         # sublayer 2
         self.x_layernorm2 = nn.LayerNorm(d_x)
         self.m_layernorm2 = nn.LayerNorm(d_x)
-        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
+        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout, ed=True)
         self.x_dropout2 = nn.Dropout(dropout)
         self.m_dropout2 = nn.Dropout(dropout)
         # sublayer 3
@@ -540,7 +540,7 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout, ed=False):
         super().__init__()
         self.d_x = d_x
         self.d_q = d_q
@@ -549,7 +549,7 @@ class SelfAttention(nn.Module):
         self.n_I = n_I
         self.use_xv = use_xv # use separate value vectors for x (rather than keys)
         #TODO 
-        self.sp_kernel = sp_kernel
+        self.sp_kernel = sp_kernel and ed
 
         if sp_kernel:
             self.tau = threshold
@@ -592,7 +592,7 @@ class SelfAttention(nn.Module):
 
         if self.sp_kernel:
             dot = self.threshold(torch.einsum('bhid,bhjd->bhij', Q, K))
-            dot = (dot - 1) / self.sigma
+            dot = dot / self.dot_scale.to(key.device)
         else:
             dot = torch.einsum('bhid, bhjd -> bhij', Q, K) / self.dot_scale.to(key.device)
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
