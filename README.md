@@ -1,2 +1,2 @@
-# language_parser
-Extremely put together version of Language Parser
+# Language Compositionality
+Various models implemented to test out compositionality on various datasets.
