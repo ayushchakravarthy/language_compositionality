@@ -11,7 +11,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 
-from data import build_cogs, build_scan, SCAN
+from data import build_cogs, SCAN, PCFGSet
 from models.models import LanguageParser, Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
@@ -49,6 +49,37 @@ def train(run, args):
         trg_vocab_size = len(TRG.get_stoi())
         pad_idx = SRC['<pad>']
         assert TRG['<pad>'] == pad_idx
+    
+    elif args.dataset == 'pcfg-set':
+        train_data = PCFGSet('train', device, None)
+        SRC, TRG = train_data.get_vocab()
+
+        dev_data = PCFGSet('dev', device, (SRC, TRG))
+        test_data = PCFGSet('test', device, (SRC, TRG))
+
+        train_data = DataLoader(train_data,
+                                batch_size=args.batch_size,
+                                shuffle=True,
+                                num_workers=0
+                                )
+        dev_data = DataLoader(dev_data,
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=0
+                              )
+        test_data = DataLoader(test_data,
+                               batch_size=args.batch_size,
+                               shuffle=True,
+                               num_workers=0
+                               )
+
+        # vocab
+        src_vocab_size = len(SRC.get_stoi())
+        trg_vocab_size = len(TRG.get_stoi())
+        pad_idx = SRC['<pad>']
+        assert TRG['<pad>'] == pad_idx
+
+        assert args.model_type in ['transformer', 'language_parser']
 
 
     elif args.dataset == 'cogs':
@@ -279,7 +310,7 @@ def train(run, args):
                         if args.checkpoint_path is not None:
                             torch.save(model.state_dict(),
                                        args.checkpoint_path)
-        elif args.dataset == 'scan':
+        else:
             for iter, batch in enumerate(train_data):
                 # transpose src and trg
                 src = batch['src']
@@ -346,7 +377,11 @@ def train(run, args):
                 test_accs.append(test_acc)
 
             # Write stats file
-            results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+            if args.dataset == 'pcfg-set':
+                results_path = '../results/%s/%s' % (args.results_dir, args.dataset)
+            else:
+                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+
             if not os.path.isdir(results_path):
                 os.mkdir(results_path)
             stats = {'loss_data':loss_data,
@@ -370,5 +405,3 @@ def train(run, args):
                     # Write attn weights to pickle file
                     with open(attn_file, 'wb') as f:
                         pickle.dump(ret, f)
-        else:
-            assert args.dataset not in ['scan', 'cogs'], "Unknown split"

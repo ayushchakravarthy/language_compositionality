@@ -8,7 +8,7 @@ def test(data, model, pad_idx, device, args, save=False):
     model.eval()
     with torch.no_grad():
         all_correct_trials = []
-        if args.dataset == 'scan':
+        if args.dataset == 'scan' or args.dataset == 'pcfg-set':
             for i, batch in enumerate(data):
                 # transpose src and trg
                 src = batch['src']
