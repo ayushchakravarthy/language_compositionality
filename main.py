@@ -66,7 +66,7 @@ parser.add_argument('--adv_lr', type=float, default=0.001,
 parser.add_argument('--learning_rate', type=float, default=0.001)
 
 # Output options
-parser.add_argument('--results_dir', default='language_parser',
+parser.add_argument('--results_dir', default='transformer',
                     help='Results subdirectory to save results')
 parser.add_argument('--out_data_file', default='train_results.json',
                     help='Name of output data file with training loss data')

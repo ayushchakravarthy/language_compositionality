@@ -3,7 +3,6 @@
 import os
 import json
 import pickle
-from re import L
 
 import torch
 import torch.nn as nn
@@ -12,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from data import build_cogs, SCAN, PCFGSet
-from models.models import LanguageParser, Transformer
+from models.models import Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
 
@@ -79,7 +78,7 @@ def train(run, args):
         pad_idx = SRC['<pad>']
         assert TRG['<pad>'] == pad_idx
 
-        assert args.model_type in ['transformer', 'language_parser']
+        assert args.model_type in ['transformer']
 
 
     elif args.dataset == 'cogs':
@@ -94,20 +93,7 @@ def train(run, args):
         assert TRG.vocab[TRG.pad_token] == pad_idx
 
 
-    # Model
-    if args.model_type == "language_parser":
-        model = LanguageParser(
-            src_vocab_size,
-            trg_vocab_size,
-            args.d_model,
-            args.nhead,
-            args.n_layers,
-            args.dim_feedforward,
-            args.dropout,
-            pad_idx,
-            device
-        )
-    elif args.model_type == "transformer":
+    if args.model_type == "transformer":
         model = Transformer(
             src_vocab_size,
             trg_vocab_size,
@@ -123,7 +109,7 @@ def train(run, args):
         assert args.pos
         model = build_tp_sep_transformer(args, pad_idx, src_vocab_size)
     else:
-        assert args.model_type not in ['transformer', 'language_parser', 'sep-transformer']
+        assert args.model_type not in ['transformer', 'sep-transformer']
 
     print(f"Model size: {sum(p.numel() for p in model.parameters())}")
     if args.load_weights_from is not None:
