@@ -1,2 +1,2 @@
 # Language Compositionality
-Various models implemented to test out compositionality on various datasets.
+This branch contains all possible combinations and is very messy with all models I experimented with/created.
