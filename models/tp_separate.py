@@ -553,11 +553,9 @@ class SelfAttention(nn.Module):
 
         if sp_kernel:
             self.tau = threshold
-            self.sigma = torch.nn.Parameter(torch.randn((1)))
-            self.sigma.requires_grad = True
             self.threshold = torch.nn.Threshold(self.tau, 0, inplace=True)
-        else:
-            self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
+
+        self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
 
         self.W_q = nn.Linear(self.d_x, d_q * n_I)
         self.W_k = nn.Linear(self.d_x, d_k * n_I)
