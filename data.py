@@ -12,9 +12,6 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import build_vocab_from_iterator
 from torchtext.data.utils import get_tokenizer
 
-from torchtext.legacy.data import Field, BucketIterator
-from torchtext.legacy.datasets import TranslationDataset
-
 from torch.utils.data import Dataset
 
 class PCFGSet(Dataset):
@@ -196,36 +193,72 @@ class SCAN(Dataset):
             }
 
         return sample
-        
-def build_cogs(batch_size, device='cpu'):
-    path = 'data/cogs'
-    train_path = os.path.join(path, 'train')
-    dev_path = os.path.join(path, 'dev')
-    test_path = os.path.join(path, 'test')
-    train_100_path = os.path.join(path, 'train_100')
-    gen_path = os.path.join(path, 'gen')
 
+class COGS(Dataset):
+    """COGS preprocessing"""
 
-    exts = ('.src', '.trg')
+    def __init__(self, set, split='train', device='cpu', vocabs=None):
+        self.device = device
+        self.tokenizer = get_tokenizer("basic_english")
+        self.split = split
 
-    SRC = Field(init_token='<sos>', eos_token='<eos>')
-    TRG = Field(init_token='<sos>', eos_token='<eos>')
-    # this maybe needed later
-    # dist = Field(init_token='<sos>', eos_token='<eos>')
-    fields = (SRC, TRG)
+        path = 'data/cogs'
 
-    train_ = TranslationDataset(train_path, exts, fields)
-    dev_ = TranslationDataset(dev_path, exts, fields)
-    test_ = TranslationDataset(test_path, exts, fields)
-    train_100_ = TranslationDataset(train_100_path, exts, fields)
-    gen_ = TranslationDataset(gen_path, exts, fields)
+        assert set in ['train', 'dev', 'test', 'gen']
+        if set != split:
+            set = split
 
-    SRC.build_vocab(train_)
-    TRG.build_vocab(train_)
+        with open(f'{path}/{set}.src', 'r') as f:
+            self.src = f.read().split('\n')
+        with open(f'{path}/{set}.tgt', 'r') as f:
+            self.trg = f.read().split('\n')
 
-    train, dev, test, train_100, gen = BucketIterator.splits((train_, dev_, test_, train_100_, gen_),
-                                             sort=False,
-                                             batch_size=batch_size,
-                                             shuffle=True,
-                                             device=device)
-    return SRC, TRG, train, train_100, dev, test, gen
+        self.src = self.tokenize(self.src[:-1])
+        self.trg = self.tokenize(self.trg[:-1])
+
+        if vocabs is None:
+            self.SRC, self.TRG = self.build_vocab()
+        else:
+            (self.SRC, self.TRG) = vocabs
+
+        self.src = self.to_int(self.src, self.SRC)
+        self.trg = self.to_int(self.trg, self.TRG)
+
+        self.src = self.pad(self.src)
+        self.trg = self.pad(self.trg)
+
+    def tokenize(self, str_list):
+        s = []
+        for string in str_list:
+            s.append(self.tokenizer(string))
+        return s
+
+    def build_vocab(self):
+        src = self.src
+        trg = self.trg
+
+        SRC = build_vocab_from_iterator(src, specials=['<pad>', '<sos>', '<eos>'])
+        TRG = build_vocab_from_iterator(trg, specials=['<pad>', '<sos>', '<eos>'])
+
+        return SRC, TRG
+
+    def to_int(self, str_list, vocab):
+        l = []
+        for s in str_list:
+            l.append(torch.tensor([1] + vocab(s) + [2], device=self.device))
+        return l
+
+    def pad(self, str_list):
+        return pad_sequence(str_list, batch_first=True, padding_value=0)
+
+    def get_vocab(self):
+        return self.SRC, self.TRG
+
+    def __len__(self):
+        return len(self.src)
+    
+    def __getitem__(self, index):
+        sample = {
+            'src': self.src[index],
+            'trg': self.trg[index]
+        }

@@ -10,7 +10,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 
-from data import build_cogs, SCAN, PCFGSet
+from data import SCAN, PCFGSet, COGS
 from models.models import Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
@@ -82,15 +82,31 @@ def train(run, args):
 
 
     elif args.dataset == 'cogs':
-        SRC, TRG, train_data, train_100_data, dev_data, test_data, gen_data =  build_cogs(
-            args.batch_size,
-            device=device
-        )
+        train_data = COGS('train', args.split, device, None)
+        SRC, TRG = train_data.get_vocab()
 
-        src_vocab_size = len(SRC.vocab.stoi)
-        trg_vocab_size = len(TRG.vocab.stoi)
-        pad_idx = SRC.vocab[SRC.pad_token]
-        assert TRG.vocab[TRG.pad_token] == pad_idx
+        dev_data = COGS('dev', args.split, device, (SRC, TRG))
+        test_data = COGS('test', args.split, device, (SRC, TRG))            
+        gen_data = COGS('gen', args.split, device, (SRC, TRG))            
+
+        train_data = DataLoader(train_data,
+                                batch_size=args.batch_size,
+                                shuffle=True,
+                                num_workers=0)
+        dev_data = DataLoader(dev_data,
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=0)
+        test_data = DataLoader(test_data,
+                               batch_size=args.batch_size,
+                               shuffle=True,
+                               num_workers=0)
+        
+        # vocab
+        src_vocab_size = len(SRC.get_stoi())
+        trg_vocab_size = len(TRG.get_stoi())
+        pad_idx = SRC['<pad>']
+        assert TRG['<pad>'] == pad_idx
 
 
     if args.model_type == "transformer":
@@ -138,254 +154,109 @@ def train(run, args):
 
     # Training Loop
     for epoch in range(args.num_epochs):
-        if args.dataset == 'cogs':
-            if args.split == 'train':
-                for iter, batch in enumerate(train_data):
-                    # transpose src and trg
-                    src = batch.src.transpose(0, 1)
-                    trg = batch.trg.transpose(0, 1)
+        for iter, batch in enumerate(train_data):
+            # transpose src and trg
+            src = batch['src']
+            trg = batch['trg']
 
-                    # augment trg
-                    trg_input = trg[:, :-1]
-                    trg_out = trg[:, 1:]
-
-                    # get predictions
-                    out, attn_wts = model(src, trg_input)
-
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.view(-1))
-                    optimizer.zero_grad()
-                    optimizer.backward(loss)
-                    optimizer.step()
-                    # Record Loss
-                    if iter % args.record_loss_every == 0:
-                        loss_datapoint = loss.data.item()
-                        print(
-                            'Run:', run,
-                            'Epochs: ', epoch,
-                            'Iter: ', iter,
-                            'Loss: ', loss_datapoint
-                        )
-                        loss_data.append(loss_datapoint)
-
-                # Checkpoint
-                if epoch % args.checkpoint_every == 0:
-                    # Checkpoint on train data
-                    print("Checking training accuracy...")
-                    train_acc = test(train_data, model, pad_idx, device, args)
-                    print("Training accuracy is ", train_acc)
-                    train_accs.append(train_acc)
-
-                    # Checkpoint on development data
-                    print("Checking development accuracy...")
-                    dev_acc = test(dev_data, model, pad_idx, device, args)
-                    print("Development accuracy is ", dev_acc)
-                    dev_accs.append(dev_acc)
-
-                    # Checkpoint on test data
-                    print("Checking test accuracy...")
-                    test_acc = test(test_data, model, pad_idx, device, args)
-                    print("Test accuracy is ", test_acc)
-                    test_accs.append(test_acc)
-
-                    print('Checking generalization accuracy...')
-                    gen_acc = test(gen_data, model, pad_idx, device, args)
-                    print("Generalization accuracy is ", gen_acc)
-                    gen_accs.append(gen_acc)
-
-                # Write stats file
-                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
-                if not os.path.isdir(results_path):
-                    os.mkdir(results_path)
-                stats = {'loss_data':loss_data,
-                         'train_accs':train_accs,
-                         'dev_accs':dev_accs,
-                         'test_accs':test_accs}
-                results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
-                attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
-                with open(results_fn, 'w') as f:
-                    json.dump(stats, f)
-        
-                # Write attn weights to pickle file
-                with open(attn_file, 'wb') as f:
-                    pickle.dump(attn_wts, f)
-
-                # Save model weights
-                if run == 0:
-                    if test_acc > best_test_acc:
-                        best_test_acc = test_acc
-                        print('Saving best model')
-                        if args.checkpoint_path is not None:
-                            torch.save(model.state_dict(),
-                                       args.checkpoint_path)
-            elif args.split == 'train-100':
-                for iter, batch in enumerate(train_100_data):
-                    # transpose src and trg
-                    src = batch.src.transpose(0, 1)
-                    trg = batch.trg.transpose(0, 1)
-
-                    # augment trg
-                    trg_input = trg[:, :-1]
-                    trg_out = trg[:, 1:]
-
-                    # get predictions
-                    out, attn_wts = model(src, trg_input)
-
-                    loss = loss_fn(out.reshape(-1, trg_vocab_size), trg_out.reshape(-1))
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                    # Record Loss
-                    if iter % args.record_loss_every == 0:
-                        loss_datapoint = loss.data.item()
-                        print(
-                            'Run:', run,
-                            'Epochs: ', epoch,
-                            'Iter: ', iter,
-                            'Loss: ', loss_datapoint
-                        )
-                        loss_data.append(loss_datapoint)
-
-                # Checkpoint
-                if epoch % args.checkpoint_every == 0:
-                    # Checkpoint on train data
-                    print("Checking training accuracy...")
-                    train_acc = test(train_data, model, pad_idx, device, args)
-                    print("Training accuracy is ", train_acc)
-                    train_accs.append(train_acc)
-
-                    # Checkpoint on development data
-                    print("Checking development accuracy...")
-                    dev_acc = test(dev_data, model, pad_idx, device, args)
-                    print("Development accuracy is ", dev_acc)
-                    dev_accs.append(dev_acc)
-
-                    # Checkpoint on test data
-                    print("Checking test accuracy...")
-                    test_acc = test(test_data, model, pad_idx, device, args)
-                    print("Test accuracy is ", test_acc)
-                    test_accs.append(test_acc)
-
-                    print('Checking generalization accuracy...')
-                    gen_acc = test(gen_data, model, pad_idx, device, args)
-                    print("Generalization accuracy is ", gen_acc)
-                    gen_accs.append(gen_acc)
-
-
-                # Write stats file
-                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
-                if not os.path.isdir(results_path):
-                    os.mkdir(results_path)
-                stats = {'loss_data':loss_data,
-                         'train_accs':train_accs,
-                         'dev_accs':dev_accs,
-                         'test_accs':test_accs}
-                results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
-                attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
-                with open(results_fn, 'w') as f:
-                    json.dump(stats, f)
-        
-                # Write attn weights to pickle file
-                with open(attn_file, 'wb') as f:
-                    pickle.dump(attn_wts, f)
-
-                # Save model weights
-                if run == 0:
-                    if test_acc > best_test_acc:
-                        best_test_acc = test_acc
-                        print('Saving best model')
-                        if args.checkpoint_path is not None:
-                            torch.save(model.state_dict(),
-                                       args.checkpoint_path)
-        else:
-            for iter, batch in enumerate(train_data):
-                # transpose src and trg
-                src = batch['src']
-                trg = batch['trg']
-
-                if args.pos:
-                    src_ann = batch['src_ann']
-                    trg_ann_input = batch['trg_ann'][:, :-1]
-                    trg_ann_output = batch['trg_ann'][:, 1:]
-                else:
-                    src_ann = None
-                    trg_ann_input = None
-
-                # augment trg
-                trg_input = trg[:, :-1]
-                trg_out = trg[:, 1:]
-
-                # pass through model and get predictions
-                if args.model_type == 'sep-transformer':
-                    out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
-                    trg_vocab_size = src_vocab_size
-                else:
-                    out, attn_wts = model(src, trg_input)
-
-                if comp_supervision:
-                    loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
-                    loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
-                else:
-                    loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                # Record Loss
-                if iter % args.record_loss_every == 0:
-                    loss_datapoint = loss.data.item()
-                    print(
-                        'Run:', run,
-                        'Epochs: ', epoch,
-                        'Iter: ', iter,
-                        'Loss: ', loss_datapoint,
-                    )
-                    loss_data.append(loss_datapoint)
-
-            # Checkpoint
-            if epoch % args.checkpoint_every == 0:
-                # Checkpoint on train data
-                print("Checking training accuracy...")
-                train_acc, _ = test(train_data, model, pad_idx, device, args)
-                print("Training accuracy is ", train_acc)
-                train_accs.append(train_acc)
-
-                # Checkpoint on development data
-                print("Checking development accuracy...")
-                dev_acc, _ = test(dev_data, model, pad_idx, device, args)
-                print("Development accuracy is ", dev_acc)
-                dev_accs.append(dev_acc)
-
-                # Checkpoint on test data
-                print("Checking test accuracy...")
-                test_acc, ret = test(test_data, model, pad_idx, device, args, True)
-                print("Test accuracy is ", test_acc)
-                test_accs.append(test_acc)
-
-            # Write stats file
-            if args.dataset == 'pcfg-set':
-                results_path = '../results/%s/%s' % (args.results_dir, args.dataset)
+            if args.pos:
+                src_ann = batch['src_ann']
+                trg_ann_input = batch['trg_ann'][:, :-1]
+                trg_ann_output = batch['trg_ann'][:, 1:]
             else:
-                results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+                src_ann = None
+                trg_ann_input = None
 
-            if not os.path.isdir(results_path):
-                os.mkdir(results_path)
+            # augment trg
+            trg_input = trg[:, :-1]
+            trg_out = trg[:, 1:]
+
+            # pass through model and get predictions
+            if args.model_type == 'sep-transformer':
+                out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                trg_vocab_size = src_vocab_size
+            else:
+                out, attn_wts = model(src, trg_input)
+
+            if comp_supervision:
+                loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
+                loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
+            else:
+                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            # Record Loss
+            if iter % args.record_loss_every == 0:
+                loss_datapoint = loss.data.item()
+                print(
+                    'Run:', run,
+                    'Epochs: ', epoch,
+                    'Iter: ', iter,
+                    'Loss: ', loss_datapoint,
+                )
+                loss_data.append(loss_datapoint)
+
+        # Checkpoint
+        if epoch % args.checkpoint_every == 0:
+            # Checkpoint on train data
+            print("Checking training accuracy...")
+            train_acc, _ = test(train_data, model, pad_idx, device, args)
+            print("Training accuracy is ", train_acc)
+            train_accs.append(train_acc)
+
+            # Checkpoint on development data
+            print("Checking development accuracy...")
+            dev_acc, _ = test(dev_data, model, pad_idx, device, args)
+            print("Development accuracy is ", dev_acc)
+            dev_accs.append(dev_acc)
+
+            # Checkpoint on test data
+            print("Checking test accuracy...")
+            test_acc, ret = test(test_data, model, pad_idx, device, args)
+            print("Test accuracy is ", test_acc)
+            test_accs.append(test_acc)
+        
+            if args.dataset == 'cogs':
+                # Checkpoint on test data
+                print("Checking gen accuracy...")
+                gen_acc, ret = test(gen_data, model, pad_idx, device, args, True)
+                print("Gen accuracy is ", test_acc)
+                gen_accs.append(gen_acc)
+
+        # Write stats file
+        if args.dataset == 'pcfg-set':
+            results_path = '../results/%s/%s' % (args.results_dir, args.dataset)
+        else:
+            results_path = '../results/%s/%s/%s' % (args.results_dir, args.dataset, args.split)
+
+        if not os.path.isdir(results_path):
+            os.mkdir(results_path)
+        if args.dataset is not 'cogs':
             stats = {'loss_data':loss_data,
                      'train_accs':train_accs,
                      'dev_accs':dev_accs,
                      'test_accs':test_accs}
-            results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
-            attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
-            with open(results_fn, 'w') as f:
-                json.dump(stats, f)
+        else:
+            stats = {'loss_data':loss_data,
+                     'train_accs':train_accs,
+                     'dev_accs':dev_accs,
+                     'test_accs':test_accs,
+                     'gen_accs': gen_accs}
+        results_fn = '%s/%s%d.json' % (results_path,args.out_data_file,run)
+        attn_file = '%s/%s%d.pickle' % (results_path, args.out_attn_wts, run)
+        with open(results_fn, 'w') as f:
+            json.dump(stats, f)
         
 
-            # Save model weights
-            if run == 0:
-                if test_acc > best_test_acc: # use dev to decide to save
-                    print(f'Saving best model: {epoch}')
-                    best_test_acc = test_acc
-                    if args.checkpoint_path is not None:
-                        torch.save(model.state_dict(),
-                                   args.checkpoint_path)
-                    # Write attn weights to pickle file
-                    with open(attn_file, 'wb') as f:
-                        pickle.dump(ret, f)
+        # Save model weights
+        if run == 0:
+            if test_acc > best_test_acc: # use dev to decide to save
+                print(f'Saving best model: {epoch}')
+                best_test_acc = test_acc
+                if args.checkpoint_path is not None:
+                    torch.save(model.state_dict(),
+                               args.checkpoint_path)
+                # Write attn weights to pickle file
+                with open(attn_file, 'wb') as f:
+                    pickle.dump(ret, f)
