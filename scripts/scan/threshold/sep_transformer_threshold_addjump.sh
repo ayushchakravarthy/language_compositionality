@@ -3,7 +3,7 @@
 python main.py \
 --pos \
 --sp_kernel \
---threshold 0.6 \
+--threshold 0.2 \
 --dataset scan \
 --split addjump \
 --num_runs 1 \

@@ -4,12 +4,12 @@ python main.py \
 --pos \
 --cat_xm \
 --sp_kernel \
---threshold 0.6 \
+--threshold 0.05 \
 --dataset scan \
 --split addjump \
 --num_runs 5 \
 --batch_size 256 \
---num_epochs 150 \
+--num_epochs 250 \
 --model_type sep-transformer \
 --d_model 256 \
 --nhead 8 \

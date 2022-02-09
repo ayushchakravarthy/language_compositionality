@@ -5,7 +5,6 @@ import time
 
 import torch.multiprocessing as mp
 
-# random_seed = 3417
 random_seed = np.random.randint(1, 100000)
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
@@ -18,7 +17,7 @@ parser = argparse.ArgumentParser()
 
 # Training Data
 parser.add_argument('--dataset', default='scan',
-                    help='Dataset out of SCAN or COGS')
+                    help='Dataset out of SCAN, COGS, or PCFG Set')
 parser.add_argument('--split', default='simple',
                     help='SCAN split to use for training and testing')
 parser.add_argument('--pos', action='store_true',
@@ -44,23 +43,12 @@ parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--load_weights_from', default=None, required=False)
 
 # TP-Separated Transformer Arguments
+#TODO: rename cat_xm to something more relevant
 parser.add_argument('--cat_xm', action='store_true',
                     help='concatenate X and M for output')
-parser.add_argument('--use_xv', action='store_true',
-                    help='use separate value vectors for x (rather than just keys)')
-parser.add_argument('--use_adversary', action='store_true',
-                    help='use lexical adversary')
 parser.add_argument('--sp_kernel', action='store_true',
                     help='use modified spherical gaussian kernel for similarity')
 parser.add_argument('--threshold', type=float, default=0.5)
-parser.add_argument('--skip_enc', action='store_true',
-                    help='skip encoder in the sep-transformer')
-parser.add_argument('--adv_lambda', type=float, default=0.001,
-                    help='scale of gradients from adversary')
-parser.add_argument('--adv_theta', type=float, default=0.001,
-                    help='minimum loss to backpropogate to adversary')
-parser.add_argument('--adv_lr', type=float, default=0.001,
-                    help='learning rate for adversary')
 
 # Optimization
 parser.add_argument('--learning_rate', type=float, default=0.001)

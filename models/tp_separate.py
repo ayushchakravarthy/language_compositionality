@@ -9,7 +9,6 @@ import string
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Function
 
 def build_tp_sep_transformer(params, pad_idx, vocab_size):
     d_vocab = vocab_size
@@ -27,12 +26,6 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
 
     dropout = params.dropout    
     cat_xm = params.cat_xm # concatenate x and m for output
-    use_xv = params.use_xv # use separate value vectors for x (rather than just keys)
-    use_adversary = params.use_adversary # use "lexical adversary"
-    adv_lambda = params.adv_lambda # scale of gradients from adversary
-    adv_theta = params.adv_theta # minimum loss to backpropagate to adversary
-    adv_lr = params.adv_lr # learning rate for adversary
-    skip_enc = params.skip_enc # skip the encoder completely
     sp_kernel = params.sp_kernel # use alternate similarity computation for search part of attention
     threshold = params.threshold
 
@@ -40,31 +33,26 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                                                d_x=d_x,
                                                d_r=d_r,
                                                dropout=dropout,
-                                               max_length=200,
+                                               max_length=d_pos,
                                                cat_xm=cat_xm)
-    if not skip_enc:
-        encoder = Encoder(
-            d_x,
-            d_q,
-            d_k,
-            d_v,
-            d_f,
-            n_I,
-            n_L,
-            use_xv,
-            sp_kernel,
-            threshold,
-            dropout
-        )
-    else:
-        encoder = None  
+    encoder = Encoder(
+        d_x,
+        d_q,
+        d_k,
+        d_v,
+        d_f,
+        n_I,
+        n_L,
+        sp_kernel,
+        threshold,
+        dropout
+    )
     decoder = Decoder(
         d_x,
         d_q,
         d_k,
         d_v,
         d_f,
-        use_xv,
         sp_kernel,
         threshold,
         cat_xm,
@@ -76,60 +64,10 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
                     encoder=encoder,
                     decoder=decoder,
                     pad_idx=pad_idx,
-                    use_adversary=use_adversary,
                     d_x=d_x,
                     d_vocab=d_vocab,
-                    adv_lambda=adv_lambda,
-                    adv_theta=adv_theta,
-                    adv_lr=adv_lr,
-                    skip_enc=skip_enc,
                     cat_xm=cat_xm)
     return model
-
-# Scale adversary gradient
-class GradientReverse(Function):
-    scale = 1.0
-    @staticmethod
-    def forward(ctx, x):
-        return x.view_as(x)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        return GradientReverse.scale * grad_output.neg()
-
-def grad_reverse(x, scale=1.0):
-    GradientReverse.scale = scale
-    return GradientReverse.apply(x)
-
-"""
-Lexical Adversary
-Idea: penalize embeddings for having information about token identity
-__init__
-    Args:
-        d_x
-        d_vocab
-        adv_lambda
-forward:
-    Args:
-        emb_x: [B, seq_len, d_x]
-    Output:
-        logits: [B, seq_len, d_vocab]
-
-"""
-class Adversary(nn.Module):
-    def __init__(self, d_x, d_vocab, adv_lambda):
-        super(Adversary, self).__init__()
-        self.d_x = d_x
-        self.d_vocab = d_vocab
-        self.lam = adv_lambda
-
-        self.linear = nn.Linear(self.d_x, self.d_vocab, bias=False)
-
-    def forward(self, emb_x):
-        emb_x = grad_reverse(emb_x, self.lam) # [batch_size, seq_len, d_x]
-        logits = self.linear(emb_x) # [batch_size, seq_len, d_vocab]
-        return logits
-
 
 """
 Positional Embedding
@@ -230,7 +168,6 @@ __init__:
         d_f
         n_I
         n_L
-        use_xv
         dropout
 forward:
     Args:
@@ -242,7 +179,7 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class Encoder(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, use_xv, sp_kernel, threshold, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, sp_kernel, threshold, dropout):
         super().__init__()
 
         layers = [EncoderLayer(
@@ -252,7 +189,6 @@ class Encoder(nn.Module):
             d_v,
             d_f,
             n_I,
-            use_xv,
             sp_kernel,
             threshold,
             dropout
@@ -265,7 +201,6 @@ class Encoder(nn.Module):
             d_v,
             d_f,
             n_I,
-            use_xv,
             sp_kernel,
             threshold,
             dropout
@@ -294,7 +229,6 @@ __init__:
         d_k
         d_v
         n_I
-        use_xv
         d_f
         dropout
 forward:
@@ -307,13 +241,13 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class EncoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, use_xv, sp_kernel, threshold, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, sp_kernel, threshold, dropout):
         super().__init__()
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
+        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
@@ -361,7 +295,6 @@ __init__:
         d_k
         d_v
         d_f
-        use_xv
         cat_xm
         n_I
         n_L
@@ -384,7 +317,6 @@ class Decoder(nn.Module):
         d_k,
         d_v,
         d_f,
-        use_xv,
         sp_kernel,
         threshold,
         cat_xm,
@@ -401,7 +333,6 @@ class Decoder(nn.Module):
             d_k,
             d_v,
             d_f,
-            use_xv,
             sp_kernel,
             threshold,
             n_I,
@@ -444,7 +375,6 @@ __init__:
         d_k
         d_v
         d_f
-        use_xv
         n_I
         dropout
 forward:
@@ -459,19 +389,19 @@ forward:
         src_mask: [B, trg_seq_len]
 """
 class DecoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, use_xv, sp_kernel, threshold, n_I, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, sp_kernel, threshold, n_I, dropout):
         super().__init__()
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout)
+        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
         self.x_layernorm2 = nn.LayerNorm(d_x)
         self.m_layernorm2 = nn.LayerNorm(d_x)
-        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout, ed=True)
+        self.encAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, ed=True)
         self.x_dropout2 = nn.Dropout(dropout)
         self.m_dropout2 = nn.Dropout(dropout)
         # sublayer 3
@@ -529,7 +459,6 @@ __init__:
         d_k
         d_v
         n_I
-        use_xv
         dropout
 forward:
     Args:
@@ -540,28 +469,25 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, n_I, use_xv, sp_kernel, threshold, dropout, ed=False):
+    def __init__(self, d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, ed=False):
         super().__init__()
         self.d_x = d_x
         self.d_q = d_q
         self.d_k = d_k
         self.d_v = d_v
         self.n_I = n_I
-        self.use_xv = use_xv # use separate value vectors for x (rather than keys)
-        #TODO 
+        # TODO: make this a bit more clear?
         self.sp_kernel = sp_kernel and ed
 
         if sp_kernel:
             self.tau = threshold
-            self.threshold = torch.nn.Threshold(self.tau, 0, inplace=True)
+            self.threshold = torch.nn.Threshold(self.tau, 0.0)
 
         self.dot_scale = torch.FloatTensor([math.sqrt(d_k)])
 
         self.W_q = nn.Linear(self.d_x, d_q * n_I)
         self.W_k = nn.Linear(self.d_x, d_k * n_I)
         self.W_v = nn.Linear(self.d_x, d_v * n_I)
-        if self.use_xv:
-            self.W_xv = nn.Linear(self.d_x, d_v * n_I)
 
         self.W_xo = nn.Linear(d_v * n_I, d_x)
         self.W_mo = nn.Linear(d_k * n_I, d_x)
@@ -589,10 +515,10 @@ class SelfAttention(nn.Module):
         # Q, K, V = [batch_size, n_heads, seq_size, d_*]
 
         if self.sp_kernel:
-            dot = self.threshold(torch.einsum('bhid,bhjd->bhij', Q, K))
-            dot = dot / self.dot_scale.to(key.device)
+            dot = self.threshold(torch.einsum('bhid, bhjd -> bhij', Q, K)) / self.dot_scale.to(key.device)
         else:
             dot = torch.einsum('bhid, bhjd -> bhij', Q, K) / self.dot_scale.to(key.device)
+
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
         # src_mask = [batch_size, 1      , 1             , attn]
         # trg_mask = [batch_size, 1      , query_specific, attn]
@@ -602,12 +528,6 @@ class SelfAttention(nn.Module):
 
         attention = self.dropout(F.softmax(dot, dim=-1))
         # attention = [batch_size, n_heads, seq_size, seq_size]
-
-        if self.use_xv:
-            xV = self.W_xv(key)
-            xV = xV.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
-            K = xV # use xV rather than K for values associated with x
-            # K = [batch_size, n_heads, seq_size, d_v]
 
         k_bar = torch.einsum('bhjd,bhij->bhid', K, attention)
         v_bar = torch.einsum('bhjd,bhij->bhid', V, attention)
@@ -697,13 +617,8 @@ __init__:
         encoder
         decoder
         pad_idx
-        use_adversary
         d_x
         d_vocab
-        adv_lambda
-        adv_theta
-        adv_lr
-        skip_enc
 make_masks:
     Args:
         src: [B, src_seq_len]
@@ -717,38 +632,19 @@ forward:
         trg, trg_ann: [B, trg_seq_len]
     Outputs:
         logits: [B, trg_seq_len, d]
-        #TODO: adv_stat
-train_adversary:
-    #TODO: complete this
-test_adversary:
-    #TODO: complete this
 
 """
 class Seq2Seq(nn.Module):
-    def __init__(self, embedding, encoder, decoder, pad_idx, 
-                 use_adversary, d_x, d_vocab, adv_lambda, adv_theta,
-                 adv_lr, skip_enc, cat_xm):
+    def __init__(self, embedding, encoder, decoder, pad_idx,
+                 d_x, d_vocab, cat_xm):
         super().__init__()
 
         self.embedding = embedding
         self.encoder = encoder
         self.decoder = decoder
         self.pad_idx = pad_idx
-        self.use_adversary = use_adversary
-        self.skip_enc = skip_enc
         self.cat_xm = cat_xm
         self.softmax = nn.LogSoftmax(dim=-1)
-
-        # Adversary (optional)
-        if self.use_adversary:
-            self.adversary = Adversary(
-                d_x,
-                d_vocab,
-                adv_lambda
-            )
-            self.adv_loss = nn.CrossEntropyLoss(ignore_index=pad_idx)
-            self.adv_theta = adv_theta
-            self.adv_optimizer = torch.optim.Adam(self.adversary.parameters(), adv_lr)
 
 
     def make_masks(self, src, trg):
@@ -796,18 +692,8 @@ class Seq2Seq(nn.Module):
         # src_x, src_m = [batch_size, src_seq_size, p.d_x]
         # trg_x, trg_m = [batch_size, trg_seq_size, p.d_x]
 
-        if self.use_adversary:
-            if src_emb_x.requires_grad: # no adversary training during evaluation
-                adv_stat = self.train_adversary(src_emb_x, trg_emb_x, src, trg)
-            else:
-                adv_stat = self.test_adversary(src_emb_x, trg_emb_x, src, trg)
-        else:
-            adv_stat = None
 
-        if not self.skip_enc:
-            src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
-        else:
-            encoder_attn_maps = None
+        src_x, src_m, encoder_attn_maps = self.encoder(src_x, src_m, src_mask)
         # src_x, src_m = [batch_size, src_seq_size, p.d_x]
 
         trg, decoder_attn_maps = self.decoder(trg_x, trg_m, src_x, src_m, trg_mask, src_mask)
@@ -826,51 +712,4 @@ class Seq2Seq(nn.Module):
             'Decoder': decoder_attn_maps
         }
 
-        return logits, adv_stat, attn_maps
-
-    def train_adversary(self, src_emb_x, trg_emb_x, src, trg):
-        # src_emb_x = [batch_size, src_seq_len, d_x]
-        # trg_emb_x = [batch_size, trg_seq_len, d_x]
-        # src = [batch_size, src_seq_len]
-        # trg = [batch_size, trg_seq_len]
-
-        # Forward
-        src_logits = self.adversary(src_emb_x) # [batch_size, src_seq_len, d_vocab]
-        trg_logits = self.adversary(trg_emb_x) # [batch_size, trg_seq_len, d_vocab]
-
-        # Loss
-        src = src.reshape(-1) # [batch_size*src_seq_len]
-        trg = trg.reshape(-1) # [batch_size*trg_seq_len]
-        src_logits = src_logits.contiguous().view(-1, src_logits.shape[-1])
-        trg_logits = trg_logits.contiguous().view(-1, trg_logits.shape[-1])
-        src_loss = self.adv_loss(src_logits, src)
-        trg_loss = self.adv_loss(trg_logits, trg)
-        loss = src_loss + trg_loss
-
-        # Backward
-        loss.backward(retain_graph=True) # retain graph because model will have its own loss
-        if loss.data.item() > self.adv_theta:
-            self.adv_optimizer.step()
-        self.adv_optimizer.zero_grad()
-
-        return loss.data.item()
-
-    def test_adversary(self, src_emb_x, trg_emb_x, src, trg):
-        # src_emb_x = [batch_size, src_seq_len, d_x]
-        # trg_emb_x = [batch_size, trg_seq_len, d_x]
-        # src = [batch_size, src_seq_len]
-        # trg = [batch_size, trg_seq_len]
-
-        # Predictions
-        x = torch.cat([src_emb_x, trg_emb_x], dim=1) # [batch_size, src_seq_len + trg_seq_len, d_x]
-        logits = self.adversary(x) # [batch_size, src_seq_len + trg_seq_len, d_vocab]
-        y_hat = torch.argmax(logits, dim=-1) # [batch_size, src_seq_len + trg_seq_len]
-
-        # Correct
-        y = torch.cat([src, trg], dim=1) # [batch_size, src_seq_len + trg_seq_len]
-        y_masked = y[y != self.pad_idx] # remove padding
-        y_hat_masked = y_hat[y != self.pad_idx] # remove padding
-        matches = torch.eq(y_masked, y_hat_masked)
-        matches = matches.view(-1).cpu().numpy().tolist() # [batch_size*(src_seq_len + trg_seq_len)]
-
-        return matches
+        return logits, attn_maps

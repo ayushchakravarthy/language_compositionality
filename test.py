@@ -25,7 +25,7 @@ def test(data, model, pad_idx, device, args, save=False):
                 trg_out = trg[:, 1:]
 
                 if args.model_type == 'sep-transformer':
-                    out, _, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
+                    out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
                 else:
                     out, attn_wts = model(src, trg_input)
 
