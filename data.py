@@ -1,8 +1,11 @@
 # Utilities for SCAN dataset
 
-from ast import Or
+import string
 import os
-from re import I
+import json
+import tarfile
+import mmap
+from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -21,7 +24,7 @@ class PCFGSet(Dataset):
         self.device = device
         self.tokenizer = get_tokenizer("basic_english")
 
-        path = 'data/pcfgset/pcfgset'
+        path = '../data/pcfgset/pcfgset'
 
         assert set in ['train', 'dev', 'test']
 
@@ -92,20 +95,8 @@ class SCAN(Dataset):
         self.tokenizer = get_tokenizer("basic_english")
 
         # Get paths and filenames of each partition of split
-        if split == 'simple':
-            path = 'data/scan/simple'
-        elif split == 'addjump':
-            path = 'data/scan/addjump'
-        elif split == 'mcd1':
-            path = 'data/scan/mcd1'
-        elif split == 'mcd2':
-            path = 'data/scan/mcd2'
-        elif split == 'mcd3':
-            path = 'data/scan/mcd3'
-        else:
-            assert split not in ['simple', 'addjump', 'mcd1', 'mcd2', 'mcd3'], "Unknown split"
-            exit()
-
+        assert split in ['simple', 'addjump', 'mcd1', 'mcd2', 'mcd3'], "Unknown Split"
+        path = f'../data/scan/{split}'
         assert set in ['train', 'dev', 'test']
 
         with open(f'{path}/{set}.src', 'r') as f:
@@ -202,7 +193,7 @@ class COGS(Dataset):
         self.tokenizer = get_tokenizer("basic_english")
         self.split = split
 
-        path = 'data/cogs'
+        path = '../data/cogs'
 
         assert set in ['train', 'dev', 'test', 'gen']
         if set != split:
@@ -262,3 +253,102 @@ class COGS(Dataset):
             'src': self.src[index],
             'trg': self.trg[index]
         }
+
+class CFQ(Dataset):
+    def __init__(self):
+        self.in_sentences = None
+        self.out_sentences = None
+        self.cache_dir = '../data'
+        self.URL = "https://storage.cloud.google.com/cfq_dataset/cfq1.1.tar.gz"
+
+        self.build()
+
+    def tokenize_punctuation(self, text):
+        # From https://github.com/google-research/google-research/blob/master/cfq/preprocess.py
+        text = map(lambda c: ' %s ' % c if c in string.punctuation else c, text)
+        return ' '.join(''.join(text).split())
+    
+    def preprocess_sparql(self, query):
+        # From https://github.com/google-research/google-research/blob/master/cfq/preprocess.py
+        """Do various preprocessing on the SPARQL query."""
+        # Tokenize braces.
+        query = query.replace('count(*)', 'count ( * )')
+
+        tokens = []
+        for token in query.split():
+            # Replace 'ns:' prefixes.
+            if token.startswith('ns:'):
+                token = token[3:]
+            # Replace mid prefixes.
+            if token.startswith('m.'):
+                token = 'm_' + token[2:]
+            tokens.append(token)
+
+        return ' '.join(tokens).replace('\\n', ' ')
+
+    def load_data(self, fname: str):
+        # Split the JSON manually, otherwise it requires infinite RAM and is very slow.
+        pin = "complexityMeasures".encode()
+        offset = 1
+        cnt = 0
+
+        inputs = []
+        outputs = []
+
+        with open(fname, "r") as f:
+            data = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
+            pbar = tqdm(total=len(data))
+            pbar.update(offset)
+
+            while True:
+                pos = data.find(pin, offset+6)
+                if pos < 0:
+                    this = data[offset: len(data)-2]
+                else:
+                    this = data[offset: pos-5]
+                    new_offset = pos - 4
+                    pbar.update(new_offset - offset)
+                    offset = new_offset
+                d = json.loads(this.decode())
+                inputs.append(self.tokenize_punctuation(d["questionPatternModEntities"]))
+                outputs.append(self.preprocess_sparql(d["sparqlPatternModEntities"]))
+
+                cnt += 1
+                if pos < 0:
+                    break
+
+        return inputs, outputs
+    
+    def build(self):
+        index_table = {}
+
+        if not os.path.isdir(os.path.join(self.cache_dir, "cfq")):
+            gzfile = os.path.join(self.cache_dir, os.path.basename(self.URL))
+            if not os.path.isfile(gzfile):
+                assert False, f"Please download {self.URL} and place it in the {os.path.abspath(self.cache_dir)} "\
+                               "folder. Google login needed."
+
+            with tarfile.open(gzfile, "r") as tf:
+                tf.extractall(path=self.cache_dir)
+
+        splitdir = os.path.join(self.cache_dir, "cfq", "splits")
+        for f in os.listdir(splitdir):
+            if not f.endswith(".json"):
+                continue
+
+            name = f[:-5].replace("_split", "")
+            with open(os.path.join(splitdir, f), "r") as f:
+                ind = json.loads(f.read())
+
+            index_table[name] = {
+                "train": ind["trainIdxs"],
+                "val": ind["devIdxs"],
+                "test": ind["testIdxs"]
+            }
+
+        self.in_sentences, self.out_sentences = self.load_data(os.path.join(self.cache_dir, "cfq/dataset.json"))
+        assert len(self.in_sentences) == len(self.out_sentences)
+        print(index_table)
+
+if __name__ == "__main__":
+    cfq = CFQ()

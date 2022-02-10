@@ -248,7 +248,6 @@ def train(run, args):
         with open(results_fn, 'w') as f:
             json.dump(stats, f)
         
-
         # Save model weights
         if run == 0:
             if test_acc > best_test_acc: # use dev to decide to save
