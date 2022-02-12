@@ -39,6 +39,7 @@ def test(data, model, pad_idx, device, args, save=False):
             mask = mask.cpu().numpy()
             correct = np.logical_or(mask, correct_pred)
             correct = correct.all(1).tolist()
+            all_correct_trials += correct
             if args.model_type == 'sep-transformer' and save:
                 wrong = list(map(operator.not_, correct))
                 w_idx = list(compress(range(len(wrong)), wrong))
