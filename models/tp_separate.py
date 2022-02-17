@@ -10,6 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from .utils import RelativeEmbedding
+
 def build_tp_sep_transformer(params, pad_idx, vocab_size):
     d_vocab = vocab_size
     d_pos = 200 # max input size    
@@ -28,13 +30,16 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
     cat_xm = params.cat_xm # concatenate x and m for output
     sp_kernel = params.sp_kernel # use alternate similarity computation for search part of attention
     threshold = params.threshold
+    scheme = params.encoding_scheme
+
 
     embedding = EmbeddingMultilinearSinusoidal(d_vocab=d_vocab,
                                                d_x=d_x,
                                                d_r=d_r,
                                                dropout=dropout,
                                                max_length=d_pos,
-                                               cat_xm=cat_xm)
+                                               cat_xm=cat_xm,
+                                               scheme=scheme)
     encoder = Encoder(
         d_x,
         d_q,
@@ -45,6 +50,7 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
         n_L,
         sp_kernel,
         threshold,
+        scheme,
         dropout
     )
     decoder = Decoder(
@@ -55,6 +61,7 @@ def build_tp_sep_transformer(params, pad_idx, vocab_size):
         d_f,
         sp_kernel,
         threshold,
+        scheme,
         cat_xm,
         n_I,
         n_L,
@@ -89,12 +96,13 @@ forward:
         emb_m: [B, src_seq_len, d]
 """
 class EmbeddingMultilinearSinusoidal(nn.Module):
-    def __init__(self, d_vocab, d_x, d_r, dropout, max_length, cat_xm):
+    def __init__(self, d_vocab, d_x, d_r, dropout, max_length, cat_xm, scheme):
         super(EmbeddingMultilinearSinusoidal, self).__init__()
         self.dropout = nn.Dropout(dropout)
         self.max_length = max_length
         self.d_x = d_x
         self.cat_xm = cat_xm     
+        self.scheme = scheme
 
         # token encodings
         self.x_embedding = nn.Embedding(d_vocab, d_x)
@@ -102,16 +110,17 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
         self.scale = torch.sqrt(torch.FloatTensor([d_x]))    
 
         # sinusoidal encoding
-        pe = torch.zeros(max_length, d_x)
-        position = torch.arange(0., max_length).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0., d_x, 2) *
-                             -(math.log(10000.0) / d_x))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-        # pe = [1, seq_len, d_p]     
-        # x -> r
+        if self.scheme == 'absolute':
+            pe = torch.zeros(max_length, d_x)
+            position = torch.arange(0., max_length).unsqueeze(1)
+            div_term = torch.exp(torch.arange(0., d_x, 2) *
+                                 -(math.log(10000.0) / d_x))
+            pe[:, 0::2] = torch.sin(position * div_term)
+            pe[:, 1::2] = torch.cos(position * div_term)
+            pe = pe.unsqueeze(0)
+            self.register_buffer('pe', pe)
+            # pe = [1, seq_len, d_p]     
+            # x -> r
 
         self.linear = nn.Linear(d_x, d_x)
         self.mul_scale = torch.FloatTensor([1. / math.sqrt(math.sqrt(2) - 1)])       
@@ -123,9 +132,12 @@ class EmbeddingMultilinearSinusoidal(nn.Module):
         emb_x = self.x_embedding(x) * self.scale.to(x.device)
         emb_m = self.m_embedding(m) * self.scale.to(m.device)    
         # sinusoidal
-        pos_sin_emb = torch.autograd.Variable(self.pe[:, :x.size(1)],
-                                              requires_grad=False)
-        x = emb_x + pos_sin_emb # 0.5 * pos_sin_emb + 0.5 * pos_id_emb
+        if self.scheme == 'absolute':
+            pos_sin_emb = torch.autograd.Variable(self.pe[:, :x.size(1)],
+                                                  requires_grad=False)
+            x = emb_x + pos_sin_emb # 0.5 * pos_sin_emb + 0.5 * pos_id_emb
+        else:
+            x = emb_x
         # x = [batch_size, src_seq_len, d_x]     
         r = self.linear(x) + 1 # ~N(1,1)
         # r = [batch_size, src_seq_len, d_r]     
@@ -179,7 +191,7 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class Encoder(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, sp_kernel, threshold, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, n_L, sp_kernel, threshold, scheme, dropout):
         super().__init__()
 
         layers = [EncoderLayer(
@@ -191,6 +203,7 @@ class Encoder(nn.Module):
             n_I,
             sp_kernel,
             threshold,
+            scheme,
             dropout
         )]
         for _ in range(n_L - 1):
@@ -203,6 +216,7 @@ class Encoder(nn.Module):
             n_I,
             sp_kernel,
             threshold,
+            scheme,
             dropout
           ))
         self.layers = nn.ModuleList(layers)
@@ -241,13 +255,13 @@ forward:
         src_m: [B, src_seq_len, d_x]
 """
 class EncoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, sp_kernel, threshold, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, n_I, sp_kernel, threshold, scheme, dropout):
         super().__init__()
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout)
+        self.MHA = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, scheme)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
@@ -319,6 +333,7 @@ class Decoder(nn.Module):
         d_f,
         sp_kernel,
         threshold,
+        scheme,
         cat_xm,
         n_I,
         n_L,
@@ -335,6 +350,7 @@ class Decoder(nn.Module):
             d_f,
             sp_kernel,
             threshold,
+            scheme,
             n_I,
             dropout
         ) for _ in range(n_L)])
@@ -389,13 +405,13 @@ forward:
         src_mask: [B, trg_seq_len]
 """
 class DecoderLayer(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, d_f, sp_kernel, threshold, n_I, dropout):
+    def __init__(self, d_x, d_q, d_k, d_v, d_f, sp_kernel, threshold, scheme, n_I, dropout):
         super().__init__()
 
         # sublayer 1
         self.x_layernorm1 = nn.LayerNorm(d_x)
         self.m_layernorm1 = nn.LayerNorm(d_x)
-        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout)
+        self.selfAttn = SelfAttention(d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, scheme)
         self.x_dropout1 = nn.Dropout(dropout)
         self.m_dropout1 = nn.Dropout(dropout)
         # sublayer 2
@@ -469,15 +485,19 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, ed=False):
+    def __init__(self, d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, scheme='absolute', ed=False):
         super().__init__()
         self.d_x = d_x
         self.d_q = d_q
         self.d_k = d_k
         self.d_v = d_v
         self.n_I = n_I
+        self.scheme = scheme
         # TODO: make this a bit more clear?
         self.sp_kernel = sp_kernel and ed
+
+        if scheme == 'relative':
+            self.pos_embed = RelativeEmbedding(200, d_q)
 
         if sp_kernel:
             self.tau = threshold
@@ -514,10 +534,17 @@ class SelfAttention(nn.Module):
         V = V.view(bsz, -1, self.n_I, self.d_v).permute(0,2,1,3)
         # Q, K, V = [batch_size, n_heads, seq_size, d_*]
 
-        if self.sp_kernel:
-            dot = self.threshold(torch.einsum('bhid, bhjd -> bhij', Q, K)) / self.dot_scale.to(key.device)
+        if self.scheme == 'relative':
+            dot = torch.einsum('bhid, bhjd -> bhij', Q, K)
+            rel_pos = self.pos_embed(Q)
+            dot += rel_pos
         else:
-            dot = torch.einsum('bhid, bhjd -> bhij', Q, K) / self.dot_scale.to(key.device)
+            dot = torch.einsum('bhid, bhjd -> bhij', Q, K)
+
+        if self.sp_kernel:
+            dot = self.threshold(dot) / self.dot_scale.to(key.device)
+        else:
+            dot = dot / self.dot_scale.to(key.device)
 
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
         # src_mask = [batch_size, 1      , 1             , attn]

@@ -3,20 +3,21 @@
 python main.py \
 --pos \
 --cat_xm \
+--encoding_scheme relative \
 --sp_kernel \
---threshold 0.05 \
+--threshold 0.5 \
 --dataset scan \
 --split addjump \
---num_runs 5 \
+--num_runs 1 \
 --batch_size 256 \
---num_epochs 250 \
+--num_epochs 200 \
 --model_type sep-transformer \
 --d_model 256 \
 --nhead 8 \
 --n_layers 2 \
 --dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.001 \
+--learning_rate 0.0001 \
 --results_dir sep-transformer \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \

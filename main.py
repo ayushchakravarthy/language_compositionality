@@ -49,6 +49,8 @@ parser.add_argument('--cat_xm', action='store_true',
 parser.add_argument('--sp_kernel', action='store_true',
                     help='use modified spherical gaussian kernel for similarity')
 parser.add_argument('--threshold', type=float, default=0.5)
+parser.add_argument('--encoding_scheme', default='absolute',
+                    help='scheme for conveying positional information to the model')
 
 # Optimization
 parser.add_argument('--learning_rate', type=float, default=0.001)

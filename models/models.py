@@ -5,34 +5,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-from einops import rearrange
 
+from .utils import PositionalEncoding, RelativeEmbedding
 from .tf_layers import TransformerEncoderLayer, TransformerDecoderLayer
 
 
 def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
-
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros((max_len, d_model))
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.arange(0, d_model, 2).float() * (-math.log(10000.0))
-        div_term = torch.exp(div_term / d_model)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.shape = [0]
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:, :x.size(1)]
-        return self.dropout(x)
-
 
 class TransformerDecoder(nn.Module):
     def __init__(self, decoder_layer, num_layers, norm=None):
