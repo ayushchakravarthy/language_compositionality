@@ -199,8 +199,6 @@ def train(run, args):
                     'Loss: ', loss_datapoint,
                 )
                 loss_data.append(loss_datapoint)
-                wandb_dict['epoch'] = epoch
-                wandb_dict['iter'] = iter
                 wandb_dict['loss'] = loss
 
         # Checkpoint
