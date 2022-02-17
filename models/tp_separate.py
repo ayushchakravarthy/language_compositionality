@@ -542,7 +542,7 @@ class SelfAttention(nn.Module):
             dot = torch.einsum('bhid, bhjd -> bhij', Q, K)
 
         if self.sp_kernel:
-            dot = self.threshold(dot) / self.dot_scale.to(key.device)
+            dot = self.threshold(F.softmax(dot, dim=-1)) / self.dot_scale.to(key.device)
         else:
             dot = dot / self.dot_scale.to(key.device)
 
