@@ -2,6 +2,7 @@ import argparse
 import torch
 import numpy as np
 import time 
+import wandb
 
 import torch.multiprocessing as mp
 
@@ -10,6 +11,7 @@ torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
 np.random.seed(random_seed)
 
+wandb.init(project="language-compositionality", entity="akchak")
 
 from train import train
 
@@ -74,9 +76,10 @@ def main(args):
         train(run, args)
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn")
+    # mp.set_start_method("spawn")
     s = time.time()
     args = parser.parse_args()
+    wandb.config = args
     print(args)
     main(args)
     e = time.time() - s

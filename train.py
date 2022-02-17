@@ -3,6 +3,7 @@
 import os
 import json
 import pickle
+import wandb
 
 import torch
 import torch.nn as nn
@@ -151,6 +152,8 @@ def train(run, args):
     if args.dataset == 'cogs':
         gen_accs = []
     best_test_acc = float('-inf')
+    
+    wandb_dict = {}
 
     # Training Loop
     for epoch in range(args.num_epochs):
@@ -196,6 +199,9 @@ def train(run, args):
                     'Loss: ', loss_datapoint,
                 )
                 loss_data.append(loss_datapoint)
+                wandb_dict['epoch'] = epoch
+                wandb_dict['iter'] = iter
+                wandb_dict['loss'] = loss
 
         # Checkpoint
         if epoch % args.checkpoint_every == 0:
@@ -204,18 +210,21 @@ def train(run, args):
             train_acc, _ = test(train_data, model, pad_idx, device, args)
             print("Training accuracy is ", train_acc)
             train_accs.append(train_acc)
+            wandb_dict['train_acc'] = train_acc
 
             # Checkpoint on development data
             print("Checking development accuracy...")
             dev_acc, _ = test(dev_data, model, pad_idx, device, args)
             print("Development accuracy is ", dev_acc)
             dev_accs.append(dev_acc)
+            wandb_dict['dev_acc'] = dev_acc
 
             # Checkpoint on test data
             print("Checking test accuracy...")
             test_acc, ret = test(test_data, model, pad_idx, device, args)
             print("Test accuracy is ", test_acc)
             test_accs.append(test_acc)
+            wandb_dict['test_acc'] = test_acc
         
             if args.dataset == 'cogs':
                 # Checkpoint on test data
@@ -223,6 +232,9 @@ def train(run, args):
                 gen_acc, ret = test(gen_data, model, pad_idx, device, args, True)
                 print("Gen accuracy is ", test_acc)
                 gen_accs.append(gen_acc)
+                wandb_dict['gen_acc'] = gen_acc
+        
+        wandb.log(wandb_dict)
 
         # Write stats file
         if args.dataset == 'pcfg-set':
