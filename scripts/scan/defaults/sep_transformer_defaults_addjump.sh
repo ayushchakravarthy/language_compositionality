@@ -22,5 +22,5 @@ python main.py \
 --out_data_file train_defaults_jump \
 --out_attn_wts train_defaults_jump_attn_maps \
 --checkpoint_path ../weights/sep-transformer/scan/defaults_addjump.pt \
---checkpoint_every 4 \
+--checkpoint_every 2 \
 --record_loss_every 20

@@ -11,7 +11,7 @@ def relative_to_absolute(q):
       Input: [bs, heads, length, 2*length - 1]
       Output: [bs, heads, length, length]
     """
-    b, h, l, s, device, dtype = *q.shape, q.device, q.dtype
+    b, h, l, _, device, dtype = *q.shape, q.device, q.dtype
     dd = {'device': device, 'dtype': dtype}
     col_pad = torch.zeros((b, h, l, 1), **dd)
     x = torch.cat((q, col_pad), dim=3)  # zero pad 2l-1 to 2l

@@ -541,10 +541,12 @@ class SelfAttention(nn.Module):
         else:
             dot = torch.einsum('bhid, bhjd -> bhij', Q, K)
 
-        if self.sp_kernel:
-            dot = self.threshold(F.softmax(dot, dim=-1)) / self.dot_scale.to(key.device)
-        else:
-            dot = dot / self.dot_scale.to(key.device)
+        dot /= self.dot_scale.to(key.device)
+
+        # if self.sp_kernel:
+        #     dot = self.threshold(dot) / self.dot_scale.to(key.device)
+        # else:
+        #     dot = dot / self.dot_scale.to(key.device)
 
         # energy   = [batch_size, n_heads, query_pos     , key_pos]
         # src_mask = [batch_size, 1      , 1             , attn]
@@ -552,6 +554,15 @@ class SelfAttention(nn.Module):
 
         if mask is not None:
             dot = dot.masked_fill(mask == 0, -1e10)
+
+        attn = F.softmax(dot, dim=-1)
+
+        if self.sp_kernel:
+            attn = self.threshold(attn)
+            # TODO: figure whether this is needed
+            s_a = torch.sum(attn, dim=-1, keepdim=True)
+            if not torch.any(s_a == 0):
+                attn /= s_a
 
         attention = self.dropout(F.softmax(dot, dim=-1))
         # attention = [batch_size, n_heads, seq_size, seq_size]
