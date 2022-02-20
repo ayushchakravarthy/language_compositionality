@@ -564,7 +564,7 @@ class SelfAttention(nn.Module):
             if not torch.any(s_a == 0):
                 dot /= s_a
 
-        attention = self.dropout(dot, dim=-1)
+        attention = self.dropout(dot)
         # attention = [batch_size, n_heads, seq_size, seq_size]
 
         k_bar = torch.einsum('bhjd,bhij->bhid', K, attention)
