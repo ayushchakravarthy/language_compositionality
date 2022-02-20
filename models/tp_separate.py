@@ -555,16 +555,16 @@ class SelfAttention(nn.Module):
         if mask is not None:
             dot = dot.masked_fill(mask == 0, -1e10)
 
-        attn = F.softmax(dot, dim=-1)
+        dot = F.softmax(dot, dim=-1)
 
         if self.sp_kernel:
-            attn = self.threshold(attn)
+            dot = self.threshold(dot)
             # TODO: figure whether this is needed
-            s_a = torch.sum(attn, dim=-1, keepdim=True)
+            s_a = torch.sum(dot, dim=-1, keepdim=True)
             if not torch.any(s_a == 0):
-                attn /= s_a
+                dot /= s_a
 
-        attention = self.dropout(F.softmax(dot, dim=-1))
+        attention = self.dropout(dot, dim=-1)
         # attention = [batch_size, n_heads, seq_size, seq_size]
 
         k_bar = torch.einsum('bhjd,bhij->bhid', K, attention)
