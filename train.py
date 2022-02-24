@@ -232,7 +232,7 @@ def train(run, args):
                 # Checkpoint on test data
                 print("Checking gen accuracy...")
                 gen_acc, ret = test(gen_data, model, pad_idx, device, args, True)
-                print("Gen accuracy is ", test_acc)
+                print("Gen accuracy is ", gen_acc)
                 gen_accs.append(gen_acc)
                 wandb_dict['gen_acc'] = gen_acc
         
@@ -264,6 +264,8 @@ def train(run, args):
         
         # Save model weights
         if run == 0:
+            if args.dataset == 'cogs':
+                test_acc = gen_acc
             if test_acc > best_test_acc: # use dev to decide to save
                 print(f'Saving best model: {epoch}')
                 best_test_acc = test_acc
