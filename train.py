@@ -83,12 +83,11 @@ def train(run, args):
 
 
     elif args.dataset == 'cogs':
-        train_data = COGS('train', args.split, device, None)
+        train_data = COGS(args.split, 'train', args.pos, device, None)
         SRC, TRG = train_data.get_vocab()
-
-        dev_data = COGS('dev', args.split, device, (SRC, TRG))
-        test_data = COGS('test', args.split, device, (SRC, TRG))            
-        gen_data = COGS('gen', args.split, device, (SRC, TRG))            
+        dev_data = COGS(args.split, 'dev', args.pos, device, (SRC, TRG))
+        test_data = COGS(args.split, 'test', args.pos, device, (SRC, TRG))            
+        gen_data = COGS(args.split, 'gen', args.pos, device, (SRC, TRG))            
 
         train_data = DataLoader(train_data,
                                 batch_size=args.batch_size,
@@ -102,6 +101,11 @@ def train(run, args):
                                batch_size=args.batch_size,
                                shuffle=True,
                                num_workers=0)
+
+        gen_data = DataLoader(gen_data,
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=0)
         
         # vocab
         src_vocab_size = len(SRC.get_stoi())

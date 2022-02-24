@@ -14,7 +14,7 @@ from .utils import RelativeEmbedding
 
 def build_tp_sep_transformer(params, pad_idx, vocab_size):
     d_vocab = vocab_size
-    d_pos = 200 # max input size    
+    d_pos = 500 # max input size    
     d_f = params.dim_feedforward    
     n_L = params.n_layers
     n_I = params.nhead  
@@ -485,7 +485,7 @@ forward:
         x, m: [B, seq_len, d_x]
 """
 class SelfAttention(nn.Module):
-    def __init__(self, d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, scheme='absolute', ed=False):
+    def __init__(self, d_x, d_q, d_k, d_v, n_I, sp_kernel, threshold, dropout, scheme=None, ed=False):
         super().__init__()
         self.d_x = d_x
         self.d_q = d_q

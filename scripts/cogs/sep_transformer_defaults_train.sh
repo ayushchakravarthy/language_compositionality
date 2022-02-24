@@ -3,13 +3,11 @@
 python main.py \
 --pos \
 --cat_xm \
---encoding_scheme relative \
---sp_kernel \
---threshold 0.08 \
---dataset scan \
---split addjump \
+--encoding_scheme absolute \
+--dataset cogs \
+--split train \
 --num_runs 1 \
---batch_size 256 \
+--batch_size 32 \
 --num_epochs 200 \
 --model_type sep-transformer \
 --d_model 256 \
@@ -19,8 +17,8 @@ python main.py \
 --dropout 0.1 \
 --learning_rate 0.00025 \
 --results_dir sep-transformer \
---out_data_file train_defaults_jump \
---out_attn_wts train_defaults_jump_attn_maps \
---checkpoint_path ../weights/sep-transformer/scan/defaults_addjump.pt \
+--out_data_file train_defaults \
+--out_attn_wts train_defaults_attn_maps \
+--checkpoint_path ../weights/sep-transformer/cogs/defaults_train.pt \
 --checkpoint_every 2 \
 --record_loss_every 20
