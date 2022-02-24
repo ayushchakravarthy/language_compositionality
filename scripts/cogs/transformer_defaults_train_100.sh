@@ -9,8 +9,8 @@ python main.py \
 --model_type transformer \
 --d_model 128 \
 --nhead 4 \
---n_layers 1 \
---dim_feedforward 128 \
+--n_layers 2 \
+--dim_feedforward 512 \
 --dropout 0.1 \
 --learning_rate 0.0001 \
 --results_dir transformer \
