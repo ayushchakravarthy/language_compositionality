@@ -497,7 +497,7 @@ class SelfAttention(nn.Module):
         self.sp_kernel = sp_kernel and ed
 
         if scheme == 'relative':
-            self.pos_embed = RelativeEmbedding(200, d_q)
+            self.pos_embed = RelativeEmbedding(500, d_q)
 
         if sp_kernel:
             self.tau = threshold
