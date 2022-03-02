@@ -118,9 +118,7 @@ class SCAN(Dataset):
         if vocabs is None:
             self.SRC, self.TRG = self.build_vocab()
         else:
-            print(vocabs)
             self.SRC, self.TRG = vocabs
-            exit()
 
         self.src = self.to_int(self.src, self.SRC)
         self.trg = self.to_int(self.trg, self.TRG)

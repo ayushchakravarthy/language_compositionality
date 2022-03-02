@@ -84,6 +84,7 @@ def train(run, args):
 
     elif args.dataset == 'cogs':
         train_data = COGS(args.split, 'train', args.pos, device, None)
+        # TODO: build a common vocab and save using torch.save and load each time here instead of building vocab for each run
         SRC, TRG = train_data.get_vocab()
         dev_data = COGS(args.split, 'dev', args.pos, device, (SRC, TRG))
         test_data = COGS(args.split, 'test', args.pos, device, (SRC, TRG))            
@@ -114,20 +115,7 @@ def train(run, args):
         assert TRG['<pad>'] == pad_idx
 
 
-    if args.model_type == "transformer":
-        model = Transformer(
-            src_vocab_size,
-            trg_vocab_size,
-            args.d_model,
-            args.nhead,
-            args.n_layers,
-            args.dim_feedforward,
-            args.dropout,
-            pad_idx,
-            device
-        )
-    elif args.model_type == 'sep-transformer':
-        assert args.pos
+    if args.model_type in ['sep-transformer', 'transformer']:
         model = build_tp_sep_transformer(args, pad_idx, src_vocab_size)
     else:
         assert args.model_type not in ['transformer', 'sep-transformer']
@@ -181,15 +169,14 @@ def train(run, args):
             # pass through model and get predictions
             if args.model_type == 'sep-transformer':
                 out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
-                trg_vocab_size = src_vocab_size
             else:
                 out, attn_wts = model(src, trg_input)
 
             if comp_supervision:
-                loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
-                loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
+                loss = loss_fn(out[0].view(-1, src_vocab_size), trg_out.reshape(-1)) + \
+                loss_fn(out[1].view(-1, src_vocab_size), trg_ann_output.reshape(-1))
             else:
-                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
+                loss = loss_fn(out.view(-1, src_vocab_size), trg_out.reshape(-1))
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

@@ -110,7 +110,11 @@ class Transformer(nn.Module):
 
         # Input
         # src: [B, src_seq_len, d_model]
+        print(src)
         src = self.src_embedding(src)
+        print(self.src_embedding)
+        print(src)
+        exit()
         src = self.positional_encoding(src)
 
         # trg: [B, trg_seq_len, d_model]

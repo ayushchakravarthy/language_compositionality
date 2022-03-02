@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 python main.py \
---dataset cogs
+--dataset cogs \
 --split train \
 --num_runs 1 \
 --batch_size 256 \

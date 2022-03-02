@@ -42,9 +42,9 @@ parser.add_argument('--load_weights_from', default=None, required=False)
 
 # TP-Separated Transformer Arguments
 #TODO: rename cat_xm to something more relevant
-parser.add_argument('--cat_xm', action='store_true', default=True,
+parser.add_argument('--cat_xm', action='store_true',
                     help='concatenate X and M for output')
-parser.add_argument('--sp_kernel', action='store_true', default=True,
+parser.add_argument('--sp_kernel', action='store_true',
                     help='use modified spherical gaussian kernel for similarity')
 parser.add_argument('--threshold', type=float, default=0.5)
 parser.add_argument('--encoding_scheme', default='relative',
