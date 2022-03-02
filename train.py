@@ -12,7 +12,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from data import SCAN, PCFGSet, COGS
-from models.models import Transformer
 from models.tp_separate import build_tp_sep_transformer
 from test import test
 
