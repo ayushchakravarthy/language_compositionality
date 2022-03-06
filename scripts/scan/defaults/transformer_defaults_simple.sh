@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 python main.py \
+--pos \
 --dataset scan \
 --split simple \
 --num_runs 1 \

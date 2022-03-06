@@ -12,7 +12,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from data import SCAN, PCFGSet, COGS
-from models.tp_separate import build_tp_sep_transformer
+from models.tf_separate import build_tp_sep_transformer
+from models.tf import Transformer
 from test import test
 
 
@@ -114,8 +115,21 @@ def train(run, args):
         assert TRG['<pad>'] == pad_idx
 
 
-    if args.model_type in ['sep-transformer', 'transformer']:
+    if args.model_type == 'sep-transformer':
         model = build_tp_sep_transformer(args, pad_idx, src_vocab_size)
+    elif args.model_type == 'transformer':
+        model = Transformer(
+            src_vocab_size,
+            trg_vocab_size,
+            args.d_model,
+            args.nhead,
+            args.n_layers,
+            args.dim_feedforward,
+            args.dropout,
+            pad_idx,
+            device, 
+            args.pos
+        )
     else:
         assert args.model_type not in ['transformer', 'sep-transformer']
 
@@ -169,13 +183,13 @@ def train(run, args):
             if args.model_type == 'sep-transformer':
                 out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
             else:
-                out, attn_wts = model(src, trg_input)
+                out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
 
             if comp_supervision:
                 loss = loss_fn(out[0].view(-1, src_vocab_size), trg_out.reshape(-1)) + \
                 loss_fn(out[1].view(-1, src_vocab_size), trg_ann_output.reshape(-1))
             else:
-                loss = loss_fn(out.view(-1, src_vocab_size), trg_out.reshape(-1))
+                loss = loss_fn(out.view(-1, trg_vocab_size), trg_out.reshape(-1))
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -232,7 +246,7 @@ def train(run, args):
 
         if not os.path.isdir(results_path):
             os.mkdir(results_path)
-        if args.dataset is not 'cogs':
+        if args.dataset != 'cogs':
             stats = {'loss_data':loss_data,
                      'train_accs':train_accs,
                      'dev_accs':dev_accs,

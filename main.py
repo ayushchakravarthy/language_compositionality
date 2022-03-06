@@ -4,6 +4,8 @@ import numpy as np
 import time 
 import wandb
 
+torch.cuda.set_device(0)
+
 random_seed = np.random.randint(1, 100000)
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)

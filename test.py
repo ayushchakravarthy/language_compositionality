@@ -26,7 +26,7 @@ def test(data, model, pad_idx, device, args, save=False):
             if args.model_type == 'sep-transformer':
                 out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
             else:
-                out, attn_wts = model(src, trg_input)
+                out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
 
             if args.cat_xm:
                 preds = torch.argmax(out[0], axis=2)

@@ -61,7 +61,7 @@ class TransformerEncoder(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, src_vocab_size, trg_vocab_size, d_model, nhead,
                  n_layers,  dim_feedforward,
-                 dropout, pad_idx, device):
+                 dropout, pad_idx, device, pos=False):
         super(Transformer,self).__init__()
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
@@ -74,25 +74,50 @@ class Transformer(nn.Module):
         self.pad_idx = pad_idx
         self.activation = 'relu'
         self.device = device
+        self.pos = pos
 
         # Input
-        self.src_embedding = nn.Embedding(src_vocab_size,d_model)
-        self.trg_embedding = nn.Embedding(trg_vocab_size,d_model)
-        self.positional_encoding = PositionalEncoding(d_model,dropout)
-        # Encoder
-        encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
-                                                dropout, self.activation)
-        encoder_norm = nn.LayerNorm(d_model)
+        if self.pos:
+            self.src_x_embedding = nn.Embedding(src_vocab_size, d_model)
+            self.src_m_embedding = nn.Embedding(src_vocab_size, d_model)
+            self.trg_x_embedding = nn.Embedding(trg_vocab_size, d_model)
+            self.trg_m_embedding = nn.Embedding(trg_vocab_size, d_model)
+
+            # Encoder
+            encoder_layer = TransformerEncoderLayer(2 * d_model, nhead, dim_feedforward,
+                                                    dropout, self.activation)
+            encoder_norm = nn.LayerNorm(2 * d_model)
+
+            # Decoder
+            decoder_layer = TransformerDecoderLayer(2 * d_model, nhead, dim_feedforward,
+                                                    dropout, self.activation)
+            decoder_norm = nn.LayerNorm(2 * d_model)
+
+            # Output
+            self.linear = nn.Linear(2 * d_model, trg_vocab_size)
+
+        else:
+            self.src_embedding = nn.Embedding(src_vocab_size, d_model)
+            self.trg_embedding = nn.Embedding(trg_vocab_size, d_model)
+
+            # Encoder
+            encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
+                                                    dropout, self.activation)
+            encoder_norm = nn.LayerNorm(d_model)
+
+            # Decoder
+            decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
+                                                    dropout, self.activation)
+            decoder_norm = nn.LayerNorm(d_model)
+
+            # Output
+            self.linear = nn.Linear(d_model, trg_vocab_size)
+
+        self.positional_encoding = PositionalEncoding(d_model, dropout)
         self.encoder = TransformerEncoder(encoder_layer, self.num_encoder_layers,
                                           encoder_norm)
-        # Decoder
-        decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
-                                                dropout, self.activation)
-        decoder_norm = nn.LayerNorm(d_model)
         self.decoder = TransformerDecoder(decoder_layer, self.num_decoder_layers,
                                           decoder_norm)
-        # Output
-        self.linear = nn.Linear(d_model,trg_vocab_size)
 
         self.softmax = nn.LogSoftmax(dim=-1)
         
@@ -101,25 +126,41 @@ class Transformer(nn.Module):
         self._reset_parameters()
     
 
-    def forward(self,src,trg):
+    def forward(self, src, trg, src_ann=None, trg_ann=None):
         # src: [B, src_seq_len]
         # trg: [B, trg_seq_len]
+        # src_ann: [B, src_seq_len]
+        # trg_ann: [B, trg_seq_len]
+
         # Masks
         src_mask = None
-        trg_mask,src_kp_mask,trg_kp_mask = self._get_masks(src,trg)
+        trg_mask, src_kp_mask, trg_kp_mask = self._get_masks(src, trg)
 
         # Input
-        # src: [B, src_seq_len, d_model]
-        print(src)
-        src = self.src_embedding(src)
-        print(self.src_embedding)
-        print(src)
-        exit()
-        src = self.positional_encoding(src)
+        if self.pos:
+            # src: [B, src_seq_len, d_model]
+            src = self.src_m_embedding(src)
+            src_ann = self.src_x_embedding(src_ann)
+            src = self.positional_encoding(src)
+            src_ann = self.positional_encoding(src_ann)
 
-        # trg: [B, trg_seq_len, d_model]
-        trg = self.trg_embedding(trg)
-        trg = self.positional_encoding(trg)
+            # src: [B, src_seq_len, 2 * d_model]
+            src = torch.cat((src, src_ann), dim=2)
+
+            # trg: [B, trg_seq_len, d_model]
+            trg = self.trg_m_embedding(trg)
+            trg_ann = self.trg_x_embedding(trg_ann)
+            trg = self.positional_encoding(trg)
+            trg_ann = self.positional_encoding(trg_ann)
+
+            # trg: [B, src_seq_len, 2 * d_model]
+            trg = torch.cat((trg, trg_ann), dim=2)
+        else:
+            src = self.src_embedding(src)
+            src = self.positional_encoding(src)
+
+            trg = self.trg_embedding(trg)
+            trg = self.positional_encoding(trg)
 
         # Encoder
         memory, enc_attn_wts = self.encoder(src, mask=src_mask,
