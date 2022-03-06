@@ -83,6 +83,8 @@ class Transformer(nn.Module):
             self.trg_x_embedding = nn.Embedding(trg_vocab_size, d_model)
             self.trg_m_embedding = nn.Embedding(trg_vocab_size, d_model)
 
+            self.positional_encoding = PositionalEncoding(2 * d_model, dropout)
+
             # Encoder
             encoder_layer = TransformerEncoderLayer(2 * d_model, nhead, dim_feedforward,
                                                     dropout, self.activation)
@@ -100,6 +102,8 @@ class Transformer(nn.Module):
             self.src_embedding = nn.Embedding(src_vocab_size, d_model)
             self.trg_embedding = nn.Embedding(trg_vocab_size, d_model)
 
+            self.positional_encoding = PositionalEncoding(d_model, dropout)
+
             # Encoder
             encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
                                                     dropout, self.activation)
@@ -113,7 +117,6 @@ class Transformer(nn.Module):
             # Output
             self.linear = nn.Linear(d_model, trg_vocab_size)
 
-        self.positional_encoding = PositionalEncoding(d_model, dropout)
         self.encoder = TransformerEncoder(encoder_layer, self.num_encoder_layers,
                                           encoder_norm)
         self.decoder = TransformerDecoder(decoder_layer, self.num_decoder_layers,
@@ -141,20 +144,18 @@ class Transformer(nn.Module):
             # src: [B, src_seq_len, d_model]
             src = self.src_m_embedding(src)
             src_ann = self.src_x_embedding(src_ann)
-            src = self.positional_encoding(src)
-            src_ann = self.positional_encoding(src_ann)
-
             # src: [B, src_seq_len, 2 * d_model]
             src = torch.cat((src, src_ann), dim=2)
+            src = self.positional_encoding(src)
+
 
             # trg: [B, trg_seq_len, d_model]
             trg = self.trg_m_embedding(trg)
             trg_ann = self.trg_x_embedding(trg_ann)
-            trg = self.positional_encoding(trg)
-            trg_ann = self.positional_encoding(trg_ann)
-
             # trg: [B, src_seq_len, 2 * d_model]
             trg = torch.cat((trg, trg_ann), dim=2)
+            trg = self.positional_encoding(trg)
+
         else:
             src = self.src_embedding(src)
             src = self.positional_encoding(src)
