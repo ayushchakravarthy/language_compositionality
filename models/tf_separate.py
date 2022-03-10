@@ -376,7 +376,9 @@ class Decoder(nn.Module):
         if self.cat_xm:
             trg = (trg_m, trg_x)
         else:
-            trg = trg_m
+            # should be
+            # trg = trg_m
+            trg = trg_x
 
         return trg, decoder_attn_maps
 
@@ -713,12 +715,18 @@ class Seq2Seq(nn.Module):
 
         # Use annotations for src_x, trg_x
         if src_ann is not None:
+            # should be: 
+            # src_m = src
+            # src_x = src_ann
             src_m = src_ann
             src_x = src
         else:
             src_x = src
             src_m = src
         if trg_ann is not None:
+            # should be: 
+            # trg_m = trg
+            # trg_x = trg_ann
             trg_m = trg_ann
             trg_x = trg
         else:
