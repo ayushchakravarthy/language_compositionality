@@ -713,14 +713,14 @@ class Seq2Seq(nn.Module):
 
         # Use annotations for src_x, trg_x
         if src_ann is not None:
-            src_x = src_ann
-            src_m = src
+            src_m = src_ann
+            src_x = src
         else:
             src_x = src
             src_m = src
         if trg_ann is not None:
-            trg_x = trg_ann
-            trg_m = trg
+            trg_m = trg_ann
+            trg_x = trg
         else:
             trg_x = trg
             trg_m = trg
