@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
 python main.py \
---pos \
 --dataset scan \
 --split simple \
---num_runs 1 \
---batch_size 256 \
---num_epochs 150 \
+--num_runs 10 \
+--batch_size 512 \
+--num_epochs 200 \
 --model_type transformer \
 --d_model 256 \
 --nhead 8 \

@@ -3,11 +3,11 @@
 python main.py \
 --pos \
 --sp_kernel \
---threshold 0.6 \
+--threshold 0.08 \
 --dataset scan \
 --split mcd2 \
---num_runs 1 \
---batch_size 256 \
+--num_runs 10 \
+--batch_size 512 \
 --num_epochs 150 \
 --model_type sep-transformer \
 --d_model 256 \
