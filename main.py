@@ -20,7 +20,7 @@ parser.add_argument('--dataset', default='scan',
                     help='Dataset out of SCAN, COGS, or PCFG Set')
 parser.add_argument('--split', default='addjump',
                     help='SCAN split to use for training and testing')
-parser.add_argument('--pos', action='store_true', default=True, 
+parser.add_argument('--pos', action='store_true', default=False,
                     help='use POS data for supervision')
 parser.add_argument('--num_runs', type=int, default=1,
                     help='Number of runs to do')
@@ -49,7 +49,7 @@ parser.add_argument('--cat_xm', action='store_true',
 parser.add_argument('--sp_kernel', action='store_true',
                     help='use modified spherical gaussian kernel for similarity')
 parser.add_argument('--threshold', type=float, default=0.5)
-parser.add_argument('--encoding_scheme', default='relative',
+parser.add_argument('--encoding_scheme', default='absolute',
                     help='scheme for conveying positional information to the model')
 
 # Optimization

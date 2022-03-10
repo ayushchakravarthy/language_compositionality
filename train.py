@@ -23,6 +23,8 @@ def train(run, args):
     device = torch.device("cuda:0" if use_cuda else "cpu")
     comp_supervision = args.cat_xm
 
+    print(args)
+
     # Data 
     if args.dataset == 'scan':
         train_data = SCAN(args.split, 'train', args.pos, device, None)
