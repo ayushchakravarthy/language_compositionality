@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+#SBATCH --nodes=1
+#SBATCH -p gpu
+#SBATCH --gres=gpu:1
+#SBATCH --mem=8G
+#SBATCH --job-name="sep-transformer"
+#SBATCH --time=5:00:00
+#SBATCH --output="role_filler_reversed_double_mcd3.txt"
+
+source /home/akchak/.bashrc
+conda init
+conda activate test
+
 python main.py \
 --pos \
 --cat_xm \
@@ -14,7 +26,7 @@ python main.py \
 --n_layers 2 \
 --dim_feedforward 512 \
 --dropout 0.1 \
---learning_rate 0.001 \
+--learning_rate 0.00025 \
 --results_dir sep-transformer \
 --out_data_file train_double_mcd3 \
 --out_attn_wts train_double_mcd3_attn_maps \
