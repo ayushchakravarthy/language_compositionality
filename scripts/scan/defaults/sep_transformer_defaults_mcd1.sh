@@ -6,7 +6,7 @@
 #SBATCH --mem=8G
 #SBATCH --job-name="sep-transformer"
 #SBATCH --time=5:00:00
-#SBATCH --output='depth2_defaults_mcd1.txt"
+#SBATCH --output="depth2_defaults_mcd1.txt"
 
 source /home/akchak/.bashrc
 conda init
