@@ -89,7 +89,7 @@ class PCFGSet(Dataset):
 class SCAN(Dataset):
     """SCAN dataset preprocessing"""
     
-    def __init__(self, split, set, use_pos=False, device='cpu', vocabs=None):
+    def __init__(self, split, set, use_pos=False, device='cpu', vocabs=None, depth=1):
         self.use_pos = use_pos
         self.device = device
         self.tokenizer = get_tokenizer("basic_english")
@@ -108,10 +108,19 @@ class SCAN(Dataset):
         self.trg = self.tokenize(self.trg[:-1])
 
         if self.use_pos:
-            with open(f'{path}/{set}.src.pos', 'r') as f:
-                self.src_pos = f.read().split('\n')
-            with open(f'{path}/{set}.trg.pos', 'r') as f:
-                self.trg_pos = f.read().split('\n')
+            if depth == 1:
+                with open(f'{path}/{set}.src.pos', 'r') as f:
+                    self.src_pos = f.read().split('\n')
+                with open(f'{path}/{set}.trg.pos', 'r') as f:
+                    self.trg_pos = f.read().split('\n')
+            elif depth == 2:
+                with open(f'{path}/{set}.src.pos.d2', 'r') as f:
+                    self.src_pos = f.read().split('\n')
+                with open(f'{path}/{set}.trg.pos.d2', 'r') as f:
+                    self.trg_pos = f.read().split('\n')
+            else:
+                raise ValueError
+
             self.src_pos = self.tokenize(self.src_pos[:-1])
             self.trg_pos = self.tokenize(self.trg_pos[:-1])
         

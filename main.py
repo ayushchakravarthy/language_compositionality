@@ -22,6 +22,8 @@ parser.add_argument('--split', default='addjump',
                     help='SCAN split to use for training and testing')
 parser.add_argument('--pos', action='store_true', default=False,
                     help='use POS data for supervision')
+parser.add_argument('--depth', type=int, default=1,
+                    help='depth of annotation to use')
 parser.add_argument('--num_runs', type=int, default=1,
                     help='Number of runs to do')
 parser.add_argument('--batch_size', type=int, default=256,

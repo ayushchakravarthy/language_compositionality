@@ -27,11 +27,11 @@ def train(run, args):
 
     # Data 
     if args.dataset == 'scan':
-        train_data = SCAN(args.split, 'train', args.pos, device, None)
+        train_data = SCAN(args.split, 'train', args.pos, device, None, args.depth)
         SRC, TRG = train_data.get_vocab()
 
-        dev_data = SCAN(args.split, 'dev', args.pos, device, (SRC, TRG))
-        test_data = SCAN(args.split, 'test', args.pos, device, (SRC, TRG))            
+        dev_data = SCAN(args.split, 'dev', args.pos, device, (SRC, TRG), args.depth)
+        test_data = SCAN(args.split, 'test', args.pos, device, (SRC, TRG), args.depth)
 
         train_data = DataLoader(train_data,
                                 batch_size=args.batch_size,

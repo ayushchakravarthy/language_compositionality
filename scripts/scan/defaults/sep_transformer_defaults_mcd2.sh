@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+#SBATCH --nodes=1
+#SBATCH -p gpu
+#SBATCH --gres=gpu:1
+#SBATCH --mem=8G
+#SBATCH --job-name="sep-transformer"
+#SBATCH --time=5:00:00
+#SBATCH --output="depth2_defaults_mcd2.txt"
+
+source /home/akchak/.bashrc
+conda init
+conda activate test
+
 python main.py \
 --pos \
 --cat_xm \
@@ -7,6 +19,7 @@ python main.py \
 --threshold 0.08 \
 --dataset scan \
 --split mcd2 \
+--depth 2 \
 --num_runs 10 \
 --batch_size 512 \
 --num_epochs 200 \
