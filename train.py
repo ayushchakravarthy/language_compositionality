@@ -49,6 +49,9 @@ def train(run, args):
         # vocab
         src_vocab_size = len(SRC.get_stoi())
         trg_vocab_size = len(TRG.get_stoi())
+        print(SRC.get_stoi())
+        print(TRG.get_stoi())
+        exit()
         pad_idx = SRC['<pad>']
         assert TRG['<pad>'] == pad_idx
     
@@ -189,6 +192,8 @@ def train(run, args):
                 out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
 
             if comp_supervision:
+                if trg_ann_output is None:
+                    trg_ann_output = trg_out
                 loss = loss_fn(out[0].view(-1, trg_vocab_size), trg_out.reshape(-1)) + \
                 loss_fn(out[1].view(-1, trg_vocab_size), trg_ann_output.reshape(-1))
             else:

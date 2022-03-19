@@ -123,6 +123,16 @@ class SCAN(Dataset):
                     self.src_pos = f.read().split('\n')
                 with open(f'{path}/{set}.trg.pos.d2', 'r') as f:
                     self.trg_pos = f.read().split('\n')
+            elif depth == 3:
+                with open(f'{path}/{set}.src.pos.d.3', 'r') as f:
+                    self.src_pos = f.read().split('\n')
+                with open(f'{path}/{set}.trg.pos.d.3', 'r') as f:
+                    self.trg_pos = f.read().split('\n')
+            elif depth == 4:
+                with open(f'{path}/{set}.src.pos.d.4', 'r') as f:
+                    self.src_pos = f.read().split('\n')
+                with open(f'{path}/{set}.trg.pos.d.4', 'r') as f:
+                    self.trg_pos = f.read().split('\n')
             else:
                 raise ValueError
 
