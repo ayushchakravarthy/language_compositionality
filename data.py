@@ -108,7 +108,12 @@ class SCAN(Dataset):
         self.trg = self.tokenize(self.trg[:-1])
 
         if self.use_pos:
-            if depth == 1:
+            if depth == 0.5:
+                with open(f'{path}/{set}.src.pos.0.5', 'r') as f:
+                    self.src_pos = f.read().split('\n')
+                with open(f'{path}/{set}.trg.pos.0.5', 'r') as f:
+                    self.trg_pos = f.read().split('\n')
+            elif depth == 1:
                 with open(f'{path}/{set}.src.pos', 'r') as f:
                     self.src_pos = f.read().split('\n')
                 with open(f'{path}/{set}.trg.pos', 'r') as f:

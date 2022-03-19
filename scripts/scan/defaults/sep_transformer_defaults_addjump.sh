@@ -20,7 +20,7 @@ python main.py \
 --threshold 0.08 \
 --dataset scan \
 --split addjump \
---depth 2 \
+--depth 0.5 \
 --num_runs 10 \
 --batch_size 512 \
 --num_epochs 200 \

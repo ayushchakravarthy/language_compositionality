@@ -3,7 +3,6 @@
 #SBATCH --nodes=1
 #SBATCH -p gpu
 #SBATCH --gres=gpu:1
-#SBATCH --mem=8G
 #SBATCH --job-name="sep-transformer"
 #SBATCH --time=5:00:00
 #SBATCH --output="role_filler_reversed_filler_addjump.txt"
