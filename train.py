@@ -11,7 +11,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 
-from data import SCAN, PCFGSet, COGS
+from data import SCAN, English2German, PCFGSet, COGS
 from models.tf_separate import build_tp_sep_transformer
 from models.tf import Transformer
 from test import test
@@ -51,9 +51,39 @@ def train(run, args):
         trg_vocab_size = len(TRG.get_stoi())
         print(SRC.get_stoi())
         print(TRG.get_stoi())
-        exit()
         pad_idx = SRC['<pad>']
         assert TRG['<pad>'] == pad_idx
+
+    elif args.dataset == 'en-de':
+        train_data = English2German('train', device, None)
+        SRC, TRG = train_data.get_vocab()
+
+        dev_data = English2German('dev', device, (SRC, TRG))
+        test_data = English2German('test', device, (SRC, TRG))
+
+        train_data = DataLoader(train_data,
+                                batch_size=args.batch_size,
+                                shuffle=True,
+                                num_workers=4
+                                )
+        dev_data = DataLoader(dev_data,
+                              batch_size=args.batch_size,
+                              shuffle=True,
+                              num_workers=4
+                              )
+        test_data = DataLoader(test_data,
+                               batch_size=args.batch_size,
+                               shuffle=True,
+                               num_workers=4
+                               )
+
+        # vocab
+        src_vocab_size = len(SRC.get_stoi())
+        trg_vocab_size = len(TRG.get_stoi())
+        pad_idx = SRC['<pad>']
+        assert TRG['<pad>'] == pad_idx
+
+        assert args.model_type in ['transformer']
     
     elif args.dataset == 'pcfg-set':
         train_data = PCFGSet('train', device, None)
@@ -217,24 +247,30 @@ def train(run, args):
         if epoch % args.checkpoint_every == 0:
             # Checkpoint on train data
             print("Checking training accuracy...")
-            train_acc, _ = test(train_data, model, pad_idx, device, args)
-            print("Training accuracy is ", train_acc)
-            train_accs.append(train_acc)
-            wandb_dict['train_acc'] = train_acc
+            train_acc, _ = test(train_data, model, pad_idx, TRG, args)
+            print("Training accuracy is ", train_acc[0])
+            print('Training BLEU is', train_acc[1])
+            train_accs.append(train_acc[0])
+            wandb_dict['train_acc'] = train_acc[0]
+            wandb_dict['train_bleu'] = train_acc[1]
 
             # Checkpoint on development data
             print("Checking development accuracy...")
             dev_acc, _ = test(dev_data, model, pad_idx, device, args)
-            print("Development accuracy is ", dev_acc)
-            dev_accs.append(dev_acc)
-            wandb_dict['dev_acc'] = dev_acc
+            print("Development accuracy is ", dev_acc[0])
+            print('Development BLEU is', dev_acc[1])
+            dev_accs.append(dev_acc[0])
+            wandb_dict['dev_acc'] = dev_acc[0]
+            wandb_dict['dev_bleu'] = dev_acc[1]
 
             # Checkpoint on test data
             print("Checking test accuracy...")
             test_acc, ret = test(test_data, model, pad_idx, device, args)
-            print("Test accuracy is ", test_acc)
-            test_accs.append(test_acc)
-            wandb_dict['test_acc'] = test_acc
+            print("Test accuracy is ", test_acc[0])
+            print("Test BLEU is ", test_acc[1])
+            test_accs.append(test_acc[0])
+            wandb_dict['test_acc'] = test_acc[0]
+            wandb_dict['test_bleu'] = test_acc[1]
         
             if args.dataset == 'cogs':
                 # Checkpoint on test data

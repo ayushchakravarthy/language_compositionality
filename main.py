@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 
 # Training Data
 parser.add_argument('--dataset', default='scan',
-                    help='Dataset out of SCAN, COGS, or PCFG Set')
+                    help='Dataset out of SCAN, COGS, PCFG, en-de, en-fr')
 parser.add_argument('--split', default='addjump',
                     help='SCAN split to use for training and testing')
 parser.add_argument('--pos', action='store_true', default=False,
