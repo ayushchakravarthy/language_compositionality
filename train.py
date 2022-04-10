@@ -256,7 +256,7 @@ def train(run, args):
 
             # Checkpoint on development data
             print("Checking development accuracy...")
-            dev_acc, _ = test(dev_data, model, pad_idx, device, args)
+            dev_acc, _ = test(dev_data, model, pad_idx, TRG, args)
             print("Development accuracy is ", dev_acc[0])
             print('Development BLEU is', dev_acc[1])
             dev_accs.append(dev_acc[0])
@@ -265,7 +265,7 @@ def train(run, args):
 
             # Checkpoint on test data
             print("Checking test accuracy...")
-            test_acc, ret = test(test_data, model, pad_idx, device, args)
+            test_acc, ret = test(test_data, model, pad_idx, TRG, args)
             print("Test accuracy is ", test_acc[0])
             print("Test BLEU is ", test_acc[1])
             test_accs.append(test_acc[0])
@@ -275,7 +275,7 @@ def train(run, args):
             if args.dataset == 'cogs':
                 # Checkpoint on test data
                 print("Checking gen accuracy...")
-                gen_acc, ret = test(gen_data, model, pad_idx, device, args, True)
+                gen_acc, ret = test(gen_data, model, pad_idx, TRG, args, True)
                 print("Gen accuracy is ", gen_acc)
                 gen_accs.append(gen_acc)
                 wandb_dict['gen_acc'] = gen_acc
