@@ -80,6 +80,7 @@ def test(data, model, pad_idx, trg_vocab, args, save=False):
             else:
                 out, attn_wts = model(src, trg_input, src_ann, trg_ann_input)
 
+            
             if args.cat_xm:
                 preds = torch.argmax(out[0], axis=2)
                 beam_preds, log_prob = beam_search_decoder(out[0])
